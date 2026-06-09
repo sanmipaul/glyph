@@ -38,3 +38,14 @@
 (define-data-var owner principal CONTRACT-OWNER)
 (define-data-var wrapped-nft-contract principal CONTRACT-OWNER)
 (define-data-var registry-contract principal CONTRACT-OWNER)
+
+;; Read-only functions
+
+(define-read-only (get-appraisal (token-id uint))
+  (map-get? appraisals token-id))
+
+(define-read-only (get-position (user principal) (token-id uint))
+  (map-get? loan-positions { user: user, token-id: token-id }))
+
+(define-read-only (get-collection-ltv (collection (string-ascii 40)))
+  (map-get? collection-ltv collection))
