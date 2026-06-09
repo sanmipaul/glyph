@@ -105,3 +105,16 @@
             accrued-interest: u0 })
         (print { event: "borrow", user: tx-sender, token-id: token-id, loan-amount: loan-amount })
         (ok true)))))
+
+(define-public (repay (token-id uint))
+  (let ((pos (unwrap! (map-get? loan-positions { user: tx-sender, token-id: token-id }) ERR-NO-POSITION))
+        (interest (unwrap! (calculate-interest tx-sender token-id) ERR-NO-POSITION)))
+    (let ((total-owed (+ (get loan-amount pos) interest)))
+      ;; Accept repayment in STX
+      (when (is-eq (get loan-asset pos) STX-ASSET)
+        (try! (stx-transfer? total-owed tx-sender (as-contract tx-sender))))
+      ;; Return NFT
+      (try! (as-contract (contract-call? (var-get wrapped-nft-contract) transfer token-id (as-contract tx-sender) tx-sender)))
+      (map-delete loan-positions { user: tx-sender, token-id: token-id })
+      (print { event: "repay", user: tx-sender, token-id: token-id, total-paid: total-owed })
+      (ok total-owed))))
