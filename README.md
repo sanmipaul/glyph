@@ -84,3 +84,51 @@ inscription  -----> proof --> (register + verify)
                         v
                   Bitcoin L1 (inscription released)
 ```
+
+---
+
+## Contracts
+
+### `ordinal-registry.clar`
+The entry point for all Ordinals. Records inscription metadata off-chain, then authorized verifiers confirm ownership and trigger minting of the wrapped NFT. Tracks collection-level stats.
+
+### `wrapped-ordinal-nft.clar`
+Full SIP-009 compliant NFT representing a verified Ordinal inscription. Supports per-token approvals and operator approvals (for DeFi protocol integrations). Mint is restricted to the registry; burn is restricted to the bridge vault.
+
+### `bridge-vault.clar`
+Multi-sig controlled vault managing the Bitcoin-to-Stacks bridge exit flow. Requires `required-signatures` out of registered signers to approve a withdrawal before the wrapped NFT is burned and the off-chain bridge releases the inscription.
+
+### `ordinal-collateral.clar`
+Lending protocol for NFT-collateralized loans. Authorized appraisers set on-chain valuations; collection LTVs cap the loan amount. 5% annual interest accrues per block. Positions above 90% LTV become liquidatable.
+
+### `yield-distributor.clar`
+Staking protocol for wrapped Ordinals. Each collection has a configurable STX or sBTC yield rate per block. Stakers earn yield continuously; claiming or unstaking auto-settles pending yield.
+
+---
+
+## Bridge Flow
+
+```
+1. User registers Ordinal on-chain:
+   ordinal-registry::register-ordinal(inscription-id, collection, content-type, sat-number)
+   -> token-id assigned, status = unverified
+
+2. Off-chain verifier confirms Bitcoin ownership:
+   ordinal-registry::verify-ordinal(inscription-id)
+   -> wrapped-ordinal-nft::mint(owner, token-id, uri) called internally
+   -> SIP-009 glyph-ordinal NFT now in user's Stacks wallet
+
+3. User uses NFT in DeFi (collateral or yield staking)
+
+4. To unwrap back to Bitcoin:
+   bridge-vault::initiate-withdrawal(token-id, btc-address)
+   -> NFT transferred to vault for safekeeping
+
+5. Signers approve:
+   bridge-vault::approve-withdrawal(withdrawal-id) x 3
+
+6. Anyone executes:
+   bridge-vault::execute-withdrawal(withdrawal-id)
+   -> wrapped-ordinal-nft::burn(token-id) called
+   -> Off-chain bridge detects burn event, releases inscription on Bitcoin
+```
