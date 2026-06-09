@@ -54,3 +54,36 @@
 (define-read-only (get-collection-stats (collection (string-ascii 40)))
   (default-to { total: u0, verified: u0 }
     (map-get? collection-stats collection)))
+
+;; Public functions
+
+(define-public (register-ordinal
+    (inscription-id (string-ascii 80))
+    (collection (string-ascii 40))
+    (content-type (string-ascii 40))
+    (sat-number uint))
+  (begin
+    (asserts! (is-none (map-get? registered-ordinals { inscription-id: inscription-id })) ERR-ALREADY-REGISTERED)
+    (asserts! (> (len inscription-id) u0) ERR-INVALID-INPUT)
+    (let ((token-id (var-get next-token-id))
+          (coll-stats (get-collection-stats collection)))
+      (map-set registered-ordinals
+        { inscription-id: inscription-id }
+        { owner: tx-sender,
+          token-id: token-id,
+          collection: collection,
+          content-type: content-type,
+          sat-number: sat-number,
+          verified: false,
+          registered-at: block-height })
+      (map-set token-to-inscription token-id inscription-id)
+      (map-set collection-stats collection
+        { total: (+ (get total coll-stats) u1), verified: (get verified coll-stats) })
+      (var-set next-token-id (+ token-id u1))
+      (var-set total-registered (+ (var-get total-registered) u1))
+      (print { event: "ordinal-registered",
+               inscription-id: inscription-id,
+               owner: tx-sender,
+               token-id: token-id,
+               collection: collection })
+      (ok token-id))))
