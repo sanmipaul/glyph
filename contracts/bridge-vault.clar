@@ -28,3 +28,10 @@
     created-at: uint })
 
 (define-map signer-approvals { withdrawal-id: uint, signer: principal } bool)
+
+(define-data-var required-signatures uint u3)
+(define-data-var total-signers uint u0)
+(define-data-var withdrawal-nonce uint u0)
+(define-data-var owner principal CONTRACT-OWNER)
+(define-data-var wrapped-nft-contract principal CONTRACT-OWNER)
+(define-data-var registry-contract principal CONTRACT-OWNER)
