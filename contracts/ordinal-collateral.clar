@@ -71,3 +71,12 @@
         (>= total-debt threshold-value))
       false)
     false))
+
+;; Public functions
+
+(define-public (appraise-token (token-id uint) (value uint))
+  (begin
+    (asserts! (default-to false (map-get? authorized-appraisers tx-sender)) ERR-UNAUTHORIZED)
+    (map-set appraisals token-id { value: value, appraiser: tx-sender, block: block-height })
+    (print { event: "token-appraised", token-id: token-id, value: value, appraiser: tx-sender })
+    (ok true)))
