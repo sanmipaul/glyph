@@ -20,3 +20,8 @@
   { rate-per-block: uint, total-staked: uint, yield-asset: uint, active: bool })
 
 (define-map yield-treasury uint uint)   ;; asset-id -> available amount
+
+(define-data-var owner principal CONTRACT-OWNER)
+(define-data-var wrapped-nft-contract principal CONTRACT-OWNER)
+(define-data-var registry-contract principal CONTRACT-OWNER)
+(define-data-var total-staked uint u0)
