@@ -125,3 +125,32 @@
       (merge w { cancelled: true }))
     (print { event: "withdrawal-cancelled", withdrawal-id: withdrawal-id })
     (ok true)))
+
+;; Admin functions
+
+(define-public (add-signer (signer principal))
+  (begin
+    (asserts! (is-eq tx-sender (var-get owner)) ERR-UNAUTHORIZED)
+    (map-set signers signer true)
+    (var-set total-signers (+ (var-get total-signers) u1))
+    (ok true)))
+
+(define-public (remove-signer (signer principal))
+  (begin
+    (asserts! (is-eq tx-sender (var-get owner)) ERR-UNAUTHORIZED)
+    (map-delete signers signer)
+    (var-set total-signers (- (var-get total-signers) u1))
+    (ok true)))
+
+(define-public (set-required-signatures (n uint))
+  (begin
+    (asserts! (is-eq tx-sender (var-get owner)) ERR-UNAUTHORIZED)
+    (asserts! (<= n (var-get total-signers)) ERR-UNAUTHORIZED)
+    (asserts! (> n u0) ERR-UNAUTHORIZED)
+    (var-set required-signatures n)
+    (ok true)))
+
+(define-public (set-wrapped-nft-contract (contract principal))
+  (begin (asserts! (is-eq tx-sender (var-get owner)) ERR-UNAUTHORIZED) (var-set wrapped-nft-contract contract) (ok true)))
+(define-public (set-registry-contract (contract principal))
+  (begin (asserts! (is-eq tx-sender (var-get owner)) ERR-UNAUTHORIZED) (var-set registry-contract contract) (ok true)))
