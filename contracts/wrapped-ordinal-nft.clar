@@ -13,3 +13,8 @@
 (define-map token-uris uint (string-ascii 256))
 (define-map token-approvals uint (optional principal))
 (define-map operator-approvals { owner: principal, operator: principal } bool)
+
+(define-data-var last-token-id uint u0)
+(define-data-var owner principal CONTRACT-OWNER)
+(define-data-var registry-contract principal CONTRACT-OWNER)
+(define-data-var vault-contract principal CONTRACT-OWNER)
