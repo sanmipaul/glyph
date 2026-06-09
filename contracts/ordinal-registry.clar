@@ -107,3 +107,21 @@
               (concat "https://glyph.btc/ordinal/" inscription-id)))
       (print { event: "ordinal-verified", inscription-id: inscription-id, token-id: (get token-id data) })
       (ok (get token-id data)))))
+
+(define-public (add-verifier (verifier principal))
+  (begin
+    (asserts! (is-eq tx-sender (var-get owner)) ERR-UNAUTHORIZED)
+    (map-set authorized-verifiers verifier true)
+    (ok true)))
+
+(define-public (remove-verifier (verifier principal))
+  (begin
+    (asserts! (is-eq tx-sender (var-get owner)) ERR-UNAUTHORIZED)
+    (map-delete authorized-verifiers verifier)
+    (ok true)))
+
+(define-public (set-wrapped-nft-contract (contract principal))
+  (begin
+    (asserts! (is-eq tx-sender (var-get owner)) ERR-UNAUTHORIZED)
+    (var-set wrapped-nft-contract contract)
+    (ok true)))
