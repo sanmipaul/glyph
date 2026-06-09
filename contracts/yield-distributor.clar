@@ -10,3 +10,13 @@
 (define-constant ERR-NOT-STAKED (err u503))
 (define-constant ERR-COLLECTION-NOT-CONFIGURED (err u504))
 (define-constant ERR-INSUFFICIENT-TREASURY (err u505))
+
+(define-map staked-tokens
+  { user: principal, token-id: uint }
+  { staked-at: uint, collection: (string-ascii 40), claimed-up-to-block: uint })
+
+(define-map collection-yield-config
+  (string-ascii 40)
+  { rate-per-block: uint, total-staked: uint, yield-asset: uint, active: bool })
+
+(define-map yield-treasury uint uint)   ;; asset-id -> available amount
