@@ -132,3 +132,74 @@ Staking protocol for wrapped Ordinals. Each collection has a configurable STX or
    -> wrapped-ordinal-nft::burn(token-id) called
    -> Off-chain bridge detects burn event, releases inscription on Bitcoin
 ```
+
+---
+
+## Collateral Borrowing
+
+### Loan Flow
+
+```
+1. Appraiser sets value:  ordinal-collateral::appraise-token(token-id, value_in_ustx)
+2. Borrower opens loan:   ordinal-collateral::borrow(token-id, loan-amount, loan-asset)
+   - NFT locked in contract as collateral
+   - STX or sBTC sent to borrower
+3. Interest accrues:      5% APR, calculated per block
+4. Repay:                 ordinal-collateral::repay(token-id)
+   - Repays principal + accrued interest
+   - NFT returned to borrower
+```
+
+### Liquidation
+
+When `(loan_amount + accrued_interest) / appraisal_value >= 90%`:
+- Anyone can call `liquidate-position(user, token-id)`
+- Liquidator pays the debt amount
+- Receives the NFT at a 10% discount to appraised value
+
+---
+
+## Yield Staking
+
+```
+1. Admin configures collection: set-collection-config(collection, rate_per_block, yield_asset)
+2. Holder stakes:               yield-distributor::stake(token-id)
+   - NFT transferred to yield-distributor contract
+3. Yield accrues per block:     pending = blocks_elapsed x rate_per_block
+4. Claim without unstaking:     yield-distributor::claim-yield(token-id)
+5. Unstake + claim:             yield-distributor::unstake(token-id)
+   - Returns NFT + distributes any pending yield
+```
+
+---
+
+## Security Model
+
+### Bridge Multi-Sig
+
+The bridge vault requires M-of-N signer approval before any withdrawal executes. This prevents a single compromised key from draining inscriptions. Default: 3-of-N signers required.
+
+Withdrawals expire after `WITHDRAWAL-EXPIRY` blocks (~10 days). Expired withdrawals can be cancelled and the NFT returned to the user.
+
+### Oracle Appraisals
+
+Loan values depend on authorized appraiser inputs. The protocol mitigates oracle risk by:
+- Requiring appraiser whitelist (only admin-approved addresses)
+- LTV caps per collection (enforced on-chain)
+- Liquidation at 90% LTV (buffer before insolvency)
+
+---
+
+## Technical Specifications
+
+| Parameter | Value |
+|---|---|
+| NFT standard | SIP-009 (`glyph-ordinal`) |
+| Bridge withdrawal expiry | 1440 blocks (~10 days) |
+| Interest rate | 5% APR (500 bps) |
+| Blocks per year | 52560 |
+| Liquidation threshold | 90% LTV (9000 bps) |
+| Liquidation discount | 10% (1000 bps) |
+| Loan assets | STX (u1), sBTC (u2) |
+| Default required sigs | 3 |
+| Max approvers per withdrawal | 10 |
