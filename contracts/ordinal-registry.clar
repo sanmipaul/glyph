@@ -23,3 +23,9 @@
 (define-map token-to-inscription uint (string-ascii 80))
 (define-map authorized-verifiers principal bool)
 (define-map collection-stats (string-ascii 40) { total: uint, verified: uint })
+
+(define-data-var next-token-id uint u1)
+(define-data-var total-registered uint u0)
+(define-data-var total-verified uint u0)
+(define-data-var owner principal CONTRACT-OWNER)
+(define-data-var wrapped-nft-contract principal CONTRACT-OWNER)
