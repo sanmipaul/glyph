@@ -49,3 +49,31 @@
 
 (define-read-only (get-required-signatures)
   (var-get required-signatures))
+
+;; Public functions
+
+(define-public (initiate-withdrawal (token-id uint) (btc-address (string-ascii 62)))
+  (begin
+    (asserts! (> (len btc-address) u25) ERR-INVALID-BTC-ADDRESS)
+    (let ((inscription-id (unwrap! (contract-call? (var-get registry-contract) get-inscription-id token-id) ERR-NOT-FOUND))
+          (withdrawal-id (var-get withdrawal-nonce)))
+      ;; Transfer NFT to vault for holding during bridge process
+      (try! (contract-call? (var-get wrapped-nft-contract) transfer token-id tx-sender (as-contract tx-sender)))
+      (map-set pending-withdrawals
+        { withdrawal-id: withdrawal-id }
+        { user: tx-sender,
+          token-id: token-id,
+          inscription-id: inscription-id,
+          btc-address: btc-address,
+          approvals: u0,
+          approved-by: (list),
+          executed: false,
+          cancelled: false,
+          created-at: block-height })
+      (var-set withdrawal-nonce (+ withdrawal-id u1))
+      (print { event: "withdrawal-initiated",
+               withdrawal-id: withdrawal-id,
+               user: tx-sender,
+               token-id: token-id,
+               btc-address: btc-address })
+      (ok withdrawal-id))))
