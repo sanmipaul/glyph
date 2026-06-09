@@ -47,3 +47,26 @@
         (ok pending))
       ERR-COLLECTION-NOT-CONFIGURED)
     ERR-NOT-STAKED))
+
+;; Public functions
+
+(define-public (stake (token-id uint))
+  (begin
+    (asserts! (is-none (map-get? staked-tokens { user: tx-sender, token-id: token-id })) ERR-ALREADY-STAKED)
+    (let ((inscription-id (unwrap! (contract-call? (var-get registry-contract) get-inscription-id token-id) ERR-NOT-FOUND))
+          (ordinal-data (unwrap! (contract-call? (var-get registry-contract) get-ordinal
+                          (unwrap-panic (contract-call? (var-get registry-contract) get-inscription-id token-id))) ERR-NOT-FOUND)))
+      (let ((collection (get collection ordinal-data)))
+        (asserts! (is-some (map-get? collection-yield-config collection)) ERR-COLLECTION-NOT-CONFIGURED)
+        (try! (contract-call? (var-get wrapped-nft-contract) transfer token-id tx-sender (as-contract tx-sender)))
+        (map-set staked-tokens
+          { user: tx-sender, token-id: token-id }
+          { staked-at: block-height, collection: collection, claimed-up-to-block: block-height })
+        (match (map-get? collection-yield-config collection)
+          config
+          (map-set collection-yield-config collection
+            (merge config { total-staked: (+ (get total-staked config) u1) }))
+          true)
+        (var-set total-staked (+ (var-get total-staked) u1))
+        (print { event: "stake", user: tx-sender, token-id: token-id, collection: collection })
+        (ok true)))))
