@@ -34,3 +34,7 @@
 
 (define-map collection-ltv (string-ascii 40) uint)
 (define-map authorized-appraisers principal bool)
+
+(define-data-var owner principal CONTRACT-OWNER)
+(define-data-var wrapped-nft-contract principal CONTRACT-OWNER)
+(define-data-var registry-contract principal CONTRACT-OWNER)
