@@ -33,3 +33,54 @@ Bitcoin Ordinals have crossed $1B in trading volume but remain trapped as illiqu
 - **Borrow** STX or sBTC against it at collection-specific LTVs
 - **Stake** it to earn protocol yield
 - **Unwrap** any time through the multi-sig bridge vault
+
+---
+
+## Why Ordinals on Stacks
+
+### The Liquidity Problem
+
+Ordinals are locked on Bitcoin L1 — you can sell them, but you cannot use them as DeFi collateral or earn yield without centralized intermediaries. Stacks is the natural bridge layer because:
+
+- Stacks reads Bitcoin state natively via Clarity
+- Post-Nakamoto Stacks has Bitcoin-final settlement
+- sBTC provides native BTC liquidity already on Stacks
+- Stacks has existing DeFi infrastructure (DEXs, lending)
+
+### Collection LTV Model
+
+Not all Ordinals are equal. Glyph uses per-collection LTVs appraised on-chain:
+
+| Collection Tier | Example | Max LTV |
+|---|---|---|
+| Blue chip | Bitcoin Puppets, NodeMonkes | 70% |
+| Mid tier | Ordinal Maxi Biz | 50% |
+| Long tail | Unverified | 0% (not whitelisted) |
+
+---
+
+## Architecture
+
+```
+Bitcoin L1                    Stacks L2
+-----------                   ---------
+Ordinal             bridge    Ordinal Registry
+inscription  -----> proof --> (register + verify)
+                                    |
+                                    v
+                             Wrapped Ordinal NFT
+                             (SIP-009 glyph-ordinal)
+                                    |
+                        +-----------+-----------+
+                        |                       |
+                        v                       v
+                 Ordinal Collateral       Yield Distributor
+                 (borrow STX/sBTC)        (stake for yield)
+                        |
+                        v
+                  Bridge Vault
+                  (multi-sig withdrawal)
+                        |
+                        v
+                  Bitcoin L1 (inscription released)
+```
