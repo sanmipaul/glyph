@@ -9,3 +9,7 @@
 (define-constant ERR-NOT-APPROVED (err u204))
 
 (define-non-fungible-token glyph-ordinal uint)
+
+(define-map token-uris uint (string-ascii 256))
+(define-map token-approvals uint (optional principal))
+(define-map operator-approvals { owner: principal, operator: principal } bool)
