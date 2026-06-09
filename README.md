@@ -203,3 +203,113 @@ Loan values depend on authorized appraiser inputs. The protocol mitigates oracle
 | Loan assets | STX (u1), sBTC (u2) |
 | Default required sigs | 3 |
 | Max approvers per withdrawal | 10 |
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- [Clarinet](https://github.com/hirosystems/clarinet) v2.x
+- Node.js v18+ with `@stacks/transactions`
+
+### Installation
+
+```bash
+git clone https://github.com/sanmipaul/glyph
+cd glyph
+clarinet check
+clarinet devnet start
+```
+
+### Deploy Order
+
+1. `ordinal-registry` — no dependencies
+2. `wrapped-ordinal-nft` — set registry-contract + vault-contract after deploy
+3. `bridge-vault` — set wrapped-nft-contract + registry-contract after deploy
+4. `ordinal-collateral` — set wrapped-nft-contract + registry-contract after deploy
+5. `yield-distributor` — set wrapped-nft-contract + registry-contract after deploy
+
+---
+
+## Usage Examples
+
+### Register an Ordinal
+
+```typescript
+const tx = await makeContractCall({
+  contractName: 'ordinal-registry',
+  functionName: 'register-ordinal',
+  functionArgs: [
+    stringAsciiCV('abc123i0'),       // inscription-id
+    stringAsciiCV('bitcoin-puppets'), // collection
+    stringAsciiCV('image/webp'),      // content-type
+    uintCV(1234567),                  // sat-number
+  ],
+  senderKey: privateKey,
+  network: 'mainnet',
+});
+```
+
+### Initiate Bridge Withdrawal
+
+```typescript
+const tx = await makeContractCall({
+  contractName: 'bridge-vault',
+  functionName: 'initiate-withdrawal',
+  functionArgs: [
+    uintCV(1),                                  // token-id
+    stringAsciiCV('bc1q...your-btc-address'),   // btc-address
+  ],
+  senderKey: privateKey,
+  network: 'mainnet',
+});
+```
+
+### Borrow Against Ordinal
+
+```typescript
+const tx = await makeContractCall({
+  contractName: 'ordinal-collateral',
+  functionName: 'borrow',
+  functionArgs: [
+    uintCV(1),           // token-id
+    uintCV(50_000_000),  // loan-amount (50 STX)
+    uintCV(1),           // loan-asset (STX)
+  ],
+  senderKey: privateKey,
+  network: 'mainnet',
+});
+```
+
+---
+
+## Roadmap
+
+### Phase 1 — Core Bridge (Current)
+- [x] Ordinal registration and on-chain verification
+- [x] SIP-009 wrapped NFT with full approval support
+- [x] Multi-sig bridge vault with expiry and cancellation
+- [x] NFT-collateralized lending with interest accrual
+- [x] Collection-tiered yield staking
+
+### Phase 2 — DeFi Integration
+- [ ] sBTC loan support in ordinal-collateral
+- [ ] AMM integration for Ordinal floor price oracle
+- [ ] Fractional Ordinal ownership via SIP-010 shards
+- [ ] Cross-collection yield pooling
+
+### Phase 3 — Decentralization
+- [ ] Decentralized verifier network via staking
+- [ ] On-chain floor price aggregation
+- [ ] DAO governance for collection whitelisting
+
+---
+
+## License
+
+MIT License. See [LICENSE](LICENSE) for details.
+
+---
+
+*Glyph is experimental software. Bitcoin Ordinals bridge operations are irreversible. Always verify inscription IDs before registering.*
