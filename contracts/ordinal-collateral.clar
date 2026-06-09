@@ -118,3 +118,38 @@
       (map-delete loan-positions { user: tx-sender, token-id: token-id })
       (print { event: "repay", user: tx-sender, token-id: token-id, total-paid: total-owed })
       (ok total-owed))))
+
+(define-public (liquidate-position (user principal) (token-id uint))
+  (begin
+    (asserts! (is-liquidatable user token-id) ERR-NOT-LIQUIDATABLE)
+    (let* ((pos (unwrap! (map-get? loan-positions { user: user, token-id: token-id }) ERR-NO-POSITION))
+           (appraisal (unwrap! (map-get? appraisals token-id) ERR-NO-APPRAISAL))
+           (interest (unwrap! (calculate-interest user token-id) ERR-NO-POSITION))
+           (total-debt (+ (get loan-amount pos) interest))
+           (discounted-price (/ (* (get value appraisal) (- BASIS-POINTS LIQUIDATION-DISCOUNT)) BASIS-POINTS)))
+      ;; Liquidator pays the debt amount (at a discount to appraised value)
+      (when (is-eq (get loan-asset pos) STX-ASSET)
+        (try! (stx-transfer? total-debt tx-sender (as-contract tx-sender))))
+      ;; Transfer NFT to liquidator
+      (try! (as-contract (contract-call? (var-get wrapped-nft-contract) transfer token-id (as-contract tx-sender) tx-sender)))
+      (map-delete loan-positions { user: user, token-id: token-id })
+      (print { event: "liquidation", user: user, token-id: token-id, liquidator: tx-sender, debt: total-debt })
+      (ok true))))
+
+;; Admin functions
+
+(define-public (set-collection-ltv (collection (string-ascii 40)) (ltv uint))
+  (begin
+    (asserts! (is-eq tx-sender (var-get owner)) ERR-UNAUTHORIZED)
+    (asserts! (<= ltv BASIS-POINTS) ERR-LTV-EXCEEDED)
+    (map-set collection-ltv collection ltv)
+    (ok true)))
+
+(define-public (add-appraiser (appraiser principal))
+  (begin (asserts! (is-eq tx-sender (var-get owner)) ERR-UNAUTHORIZED) (map-set authorized-appraisers appraiser true) (ok true)))
+(define-public (remove-appraiser (appraiser principal))
+  (begin (asserts! (is-eq tx-sender (var-get owner)) ERR-UNAUTHORIZED) (map-delete authorized-appraisers appraiser) (ok true)))
+(define-public (set-wrapped-nft-contract (contract principal))
+  (begin (asserts! (is-eq tx-sender (var-get owner)) ERR-UNAUTHORIZED) (var-set wrapped-nft-contract contract) (ok true)))
+(define-public (set-registry-contract (contract principal))
+  (begin (asserts! (is-eq tx-sender (var-get owner)) ERR-UNAUTHORIZED) (var-set registry-contract contract) (ok true)))
