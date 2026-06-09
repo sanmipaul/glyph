@@ -77,3 +77,18 @@
                token-id: token-id,
                btc-address: btc-address })
       (ok withdrawal-id))))
+
+(define-public (approve-withdrawal (withdrawal-id uint))
+  (begin
+    (asserts! (is-signer tx-sender) ERR-UNAUTHORIZED)
+    (asserts! (not (has-approved withdrawal-id tx-sender)) ERR-ALREADY-APPROVED)
+    (let ((w (unwrap! (map-get? pending-withdrawals { withdrawal-id: withdrawal-id }) ERR-NOT-FOUND)))
+      (asserts! (not (get executed w)) ERR-ALREADY-EXECUTED)
+      (asserts! (not (get cancelled w)) ERR-ALREADY-EXECUTED)
+      (asserts! (< (- block-height (get created-at w)) WITHDRAWAL-EXPIRY) ERR-EXPIRED)
+      (map-set signer-approvals { withdrawal-id: withdrawal-id, signer: tx-sender } true)
+      (map-set pending-withdrawals
+        { withdrawal-id: withdrawal-id }
+        (merge w { approvals: (+ (get approvals w) u1) }))
+      (print { event: "withdrawal-approved", withdrawal-id: withdrawal-id, signer: tx-sender })
+      (ok (+ (get approvals w) u1)))))
