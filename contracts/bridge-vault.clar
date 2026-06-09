@@ -92,3 +92,36 @@
         (merge w { approvals: (+ (get approvals w) u1) }))
       (print { event: "withdrawal-approved", withdrawal-id: withdrawal-id, signer: tx-sender })
       (ok (+ (get approvals w) u1)))))
+
+(define-public (execute-withdrawal (withdrawal-id uint))
+  (let ((w (unwrap! (map-get? pending-withdrawals { withdrawal-id: withdrawal-id }) ERR-NOT-FOUND)))
+    (asserts! (not (get executed w)) ERR-ALREADY-EXECUTED)
+    (asserts! (not (get cancelled w)) ERR-ALREADY-EXECUTED)
+    (asserts! (>= (get approvals w) (var-get required-signatures)) ERR-INSUFFICIENT-APPROVALS)
+    (asserts! (< (- block-height (get created-at w)) WITHDRAWAL-EXPIRY) ERR-EXPIRED)
+    ;; Burn the wrapped NFT — signals off-chain bridge to release the inscription on Bitcoin
+    (try! (as-contract (contract-call? (var-get wrapped-nft-contract) burn (get token-id w))))
+    (map-set pending-withdrawals
+      { withdrawal-id: withdrawal-id }
+      (merge w { executed: true }))
+    (print { event: "withdrawal-executed",
+             withdrawal-id: withdrawal-id,
+             user: (get user w),
+             token-id: (get token-id w),
+             inscription-id: (get inscription-id w),
+             btc-address: (get btc-address w) })
+    (ok true)))
+
+(define-public (cancel-expired-withdrawal (withdrawal-id uint))
+  (let ((w (unwrap! (map-get? pending-withdrawals { withdrawal-id: withdrawal-id }) ERR-NOT-FOUND)))
+    (asserts! (not (get executed w)) ERR-ALREADY-EXECUTED)
+    (asserts! (not (get cancelled w)) ERR-ALREADY-EXECUTED)
+    (asserts! (>= (- block-height (get created-at w)) WITHDRAWAL-EXPIRY) ERR-NOT-EXPIRED)
+    ;; Return NFT to user
+    (try! (as-contract (contract-call? (var-get wrapped-nft-contract) transfer
+            (get token-id w) (as-contract tx-sender) (get user w))))
+    (map-set pending-withdrawals
+      { withdrawal-id: withdrawal-id }
+      (merge w { cancelled: true }))
+    (print { event: "withdrawal-cancelled", withdrawal-id: withdrawal-id })
+    (ok true)))
