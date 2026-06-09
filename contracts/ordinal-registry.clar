@@ -9,3 +9,17 @@
 (define-constant ERR-ALREADY-VERIFIED (err u103))
 (define-constant ERR-NOT-VERIFIED (err u104))
 (define-constant ERR-INVALID-INPUT (err u105))
+
+(define-map registered-ordinals
+  { inscription-id: (string-ascii 80) }
+  { owner: principal,
+    token-id: uint,
+    collection: (string-ascii 40),
+    content-type: (string-ascii 40),
+    sat-number: uint,
+    verified: bool,
+    registered-at: uint })
+
+(define-map token-to-inscription uint (string-ascii 80))
+(define-map authorized-verifiers principal bool)
+(define-map collection-stats (string-ascii 40) { total: uint, verified: uint })
