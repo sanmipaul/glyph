@@ -13,3 +13,18 @@
 (define-constant ERR-NOT-EXPIRED (err u306))
 (define-constant ERR-INVALID-BTC-ADDRESS (err u307))
 (define-constant ERR-TRANSFER-FAILED (err u308))
+
+(define-map signers principal bool)
+(define-map pending-withdrawals
+  { withdrawal-id: uint }
+  { user: principal,
+    token-id: uint,
+    inscription-id: (string-ascii 80),
+    btc-address: (string-ascii 62),
+    approvals: uint,
+    approved-by: (list 10 principal),
+    executed: bool,
+    cancelled: bool,
+    created-at: uint })
+
+(define-map signer-approvals { withdrawal-id: uint, signer: principal } bool)
