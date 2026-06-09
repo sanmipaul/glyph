@@ -25,3 +25,25 @@
 (define-data-var wrapped-nft-contract principal CONTRACT-OWNER)
 (define-data-var registry-contract principal CONTRACT-OWNER)
 (define-data-var total-staked uint u0)
+
+;; Read-only functions
+
+(define-read-only (get-stake (user principal) (token-id uint))
+  (map-get? staked-tokens { user: user, token-id: token-id }))
+
+(define-read-only (get-collection-config (collection (string-ascii 40)))
+  (map-get? collection-yield-config collection))
+
+(define-read-only (get-treasury-balance (asset-id uint))
+  (default-to u0 (map-get? yield-treasury asset-id)))
+
+(define-read-only (calculate-pending-yield (user principal) (token-id uint))
+  (match (map-get? staked-tokens { user: user, token-id: token-id })
+    stake
+    (match (map-get? collection-yield-config (get collection stake))
+      config
+      (let* ((blocks-elapsed (- block-height (get claimed-up-to-block stake)))
+             (pending (* blocks-elapsed (get rate-per-block config))))
+        (ok pending))
+      ERR-COLLECTION-NOT-CONFIGURED)
+    ERR-NOT-STAKED))
