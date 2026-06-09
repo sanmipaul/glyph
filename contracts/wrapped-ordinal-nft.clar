@@ -69,3 +69,18 @@
   (begin
     (map-set operator-approvals { owner: tx-sender, operator: operator } approved)
     (ok true)))
+
+;; Mint — only callable by ordinal-registry or vault (for re-wrapping)
+
+(define-public (mint (recipient principal) (token-id uint) (uri (string-ascii 256)))
+  (begin
+    (asserts! (or (is-eq tx-sender (var-get registry-contract))
+                  (is-eq tx-sender (var-get vault-contract))
+                  (is-eq tx-sender (var-get owner))) ERR-UNAUTHORIZED)
+    (asserts! (is-none (nft-get-owner? glyph-ordinal token-id)) ERR-ALREADY-EXISTS)
+    (try! (nft-mint? glyph-ordinal token-id recipient))
+    (map-set token-uris token-id uri)
+    (when (> token-id (var-get last-token-id))
+      (var-set last-token-id token-id))
+    (print { event: "nft-mint", token-id: token-id, recipient: recipient, uri: uri })
+    (ok true)))
