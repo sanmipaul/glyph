@@ -87,3 +87,23 @@
                token-id: token-id,
                collection: collection })
       (ok token-id))))
+
+(define-public (verify-ordinal (inscription-id (string-ascii 80)))
+  (begin
+    (asserts! (is-verifier tx-sender) ERR-UNAUTHORIZED)
+    (let ((data (unwrap! (map-get? registered-ordinals { inscription-id: inscription-id }) ERR-NOT-FOUND))
+          (coll-stats (get-collection-stats (get collection data))))
+      (asserts! (not (get verified data)) ERR-ALREADY-VERIFIED)
+      (map-set registered-ordinals
+        { inscription-id: inscription-id }
+        (merge data { verified: true }))
+      (map-set collection-stats (get collection data)
+        { total: (get total coll-stats), verified: (+ (get verified coll-stats) u1) })
+      (var-set total-verified (+ (var-get total-verified) u1))
+      ;; Mint the wrapped NFT
+      (try! (contract-call? (var-get wrapped-nft-contract) mint
+              (get owner data)
+              (get token-id data)
+              (concat "https://glyph.btc/ordinal/" inscription-id)))
+      (print { event: "ordinal-verified", inscription-id: inscription-id, token-id: (get token-id data) })
+      (ok (get token-id data)))))
