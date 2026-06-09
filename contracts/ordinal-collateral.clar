@@ -19,3 +19,18 @@
 (define-constant ERR-NOT-LIQUIDATABLE (err u406))
 (define-constant ERR-REPAY-TOO-MUCH (err u407))
 (define-constant ERR-COLLECTION-NOT-WHITELISTED (err u408))
+
+(define-map loan-positions
+  { user: principal, token-id: uint }
+  { loan-amount: uint,
+    loan-asset: uint,
+    ltv-at-open: uint,
+    interest-start-block: uint,
+    accrued-interest: uint })
+
+(define-map appraisals
+  uint
+  { value: uint, appraiser: principal, block: uint })
+
+(define-map collection-ltv (string-ascii 40) uint)
+(define-map authorized-appraisers principal bool)
