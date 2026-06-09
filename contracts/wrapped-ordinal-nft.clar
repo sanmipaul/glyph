@@ -18,3 +18,30 @@
 (define-data-var owner principal CONTRACT-OWNER)
 (define-data-var registry-contract principal CONTRACT-OWNER)
 (define-data-var vault-contract principal CONTRACT-OWNER)
+
+;; SIP-009 read-only functions
+
+(define-read-only (get-last-token-id)
+  (ok (var-get last-token-id)))
+
+(define-read-only (get-token-uri (token-id uint))
+  (ok (map-get? token-uris token-id)))
+
+(define-read-only (get-owner (token-id uint))
+  (ok (nft-get-owner? glyph-ordinal token-id)))
+
+;; Extended read-only functions
+
+(define-read-only (get-approved (token-id uint))
+  (default-to none (map-get? token-approvals token-id)))
+
+(define-read-only (is-approved-for-all (owner-addr principal) (operator principal))
+  (default-to false (map-get? operator-approvals { owner: owner-addr, operator: operator })))
+
+(define-read-only (is-owner-or-approved (token-id uint) (caller principal))
+  (let ((token-owner (unwrap-panic (nft-get-owner? glyph-ordinal token-id))))
+    (or (is-eq caller token-owner)
+        (match (get-approved token-id)
+          approved (is-eq caller approved)
+          false)
+        (is-approved-for-all token-owner caller))))
