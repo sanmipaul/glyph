@@ -80,3 +80,28 @@
     (map-set appraisals token-id { value: value, appraiser: tx-sender, block: block-height })
     (print { event: "token-appraised", token-id: token-id, value: value, appraiser: tx-sender })
     (ok true)))
+
+(define-public (borrow (token-id uint) (loan-amount uint) (loan-asset uint))
+  (begin
+    (asserts! (is-none (map-get? loan-positions { user: tx-sender, token-id: token-id })) ERR-POSITION-EXISTS)
+    (let ((appraisal (unwrap! (map-get? appraisals token-id) ERR-NO-APPRAISAL))
+          (ordinal-data (unwrap! (contract-call? (var-get registry-contract) get-inscription-id token-id) ERR-NOT-FOUND)))
+      (let* ((inscription (unwrap! (contract-call? (var-get registry-contract) get-ordinal ordinal-data) ERR-NOT-FOUND))
+             (max-ltv (unwrap! (map-get? collection-ltv (get collection inscription)) ERR-COLLECTION-NOT-WHITELISTED))
+             (max-loan (/ (* (get value appraisal) max-ltv) BASIS-POINTS))
+             (ltv (/ (* loan-amount BASIS-POINTS) (get value appraisal))))
+        (asserts! (<= loan-amount max-loan) ERR-LTV-EXCEEDED)
+        ;; Transfer NFT from user to this contract as collateral
+        (try! (contract-call? (var-get wrapped-nft-contract) transfer token-id tx-sender (as-contract tx-sender)))
+        ;; Release loan amount in STX
+        (when (is-eq loan-asset STX-ASSET)
+          (try! (as-contract (stx-transfer? loan-amount tx-sender tx-sender))))
+        (map-set loan-positions
+          { user: tx-sender, token-id: token-id }
+          { loan-amount: loan-amount,
+            loan-asset: loan-asset,
+            ltv-at-open: ltv,
+            interest-start-block: block-height,
+            accrued-interest: u0 })
+        (print { event: "borrow", user: tx-sender, token-id: token-id, loan-amount: loan-amount })
+        (ok true)))))
