@@ -84,3 +84,21 @@
       (var-set last-token-id token-id))
     (print { event: "nft-mint", token-id: token-id, recipient: recipient, uri: uri })
     (ok true)))
+
+;; Burn — only callable by bridge-vault during withdrawals
+
+(define-public (burn (token-id uint))
+  (begin
+    (asserts! (is-eq tx-sender (var-get vault-contract)) ERR-UNAUTHORIZED)
+    (let ((token-owner (unwrap! (nft-get-owner? glyph-ordinal token-id) ERR-NOT-FOUND)))
+      (try! (nft-burn? glyph-ordinal token-id token-owner))
+      (map-delete token-uris token-id)
+      (map-delete token-approvals token-id)
+      (print { event: "nft-burn", token-id: token-id, owner: token-owner })
+      (ok true))))
+
+(define-public (set-registry-contract (contract principal))
+  (begin (asserts! (is-eq tx-sender (var-get owner)) ERR-UNAUTHORIZED) (var-set registry-contract contract) (ok true)))
+
+(define-public (set-vault-contract (contract principal))
+  (begin (asserts! (is-eq tx-sender (var-get owner)) ERR-UNAUTHORIZED) (var-set vault-contract contract) (ok true)))
