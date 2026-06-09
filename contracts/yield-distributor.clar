@@ -70,3 +70,19 @@
         (var-set total-staked (+ (var-get total-staked) u1))
         (print { event: "stake", user: tx-sender, token-id: token-id, collection: collection })
         (ok true)))))
+
+(define-public (claim-yield (token-id uint))
+  (let ((stake (unwrap! (map-get? staked-tokens { user: tx-sender, token-id: token-id }) ERR-NOT-STAKED))
+        (pending (unwrap! (calculate-pending-yield tx-sender token-id) ERR-NOT-STAKED)))
+    (let ((config (unwrap! (map-get? collection-yield-config (get collection stake)) ERR-COLLECTION-NOT-CONFIGURED))
+          (asset-id (get yield-asset (unwrap-panic (map-get? collection-yield-config (get collection stake))))))
+      (asserts! (> pending u0) ERR-NOT-FOUND)
+      (asserts! (>= (get-treasury-balance asset-id) pending) ERR-INSUFFICIENT-TREASURY)
+      (map-set staked-tokens
+        { user: tx-sender, token-id: token-id }
+        (merge stake { claimed-up-to-block: block-height }))
+      (map-set yield-treasury asset-id (- (get-treasury-balance asset-id) pending))
+      (when (is-eq asset-id u1) ;; STX
+        (try! (as-contract (stx-transfer? pending tx-sender tx-sender))))
+      (print { event: "yield-claimed", user: tx-sender, token-id: token-id, amount: pending })
+      (ok pending))))
