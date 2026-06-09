@@ -29,3 +29,28 @@
 (define-data-var total-verified uint u0)
 (define-data-var owner principal CONTRACT-OWNER)
 (define-data-var wrapped-nft-contract principal CONTRACT-OWNER)
+
+;; Read-only functions
+
+(define-read-only (get-ordinal (inscription-id (string-ascii 80)))
+  (map-get? registered-ordinals { inscription-id: inscription-id }))
+
+(define-read-only (get-inscription-id (token-id uint))
+  (map-get? token-to-inscription token-id))
+
+(define-read-only (is-verified (inscription-id (string-ascii 80)))
+  (match (map-get? registered-ordinals { inscription-id: inscription-id })
+    data (get verified data)
+    false))
+
+(define-read-only (is-verifier (principal principal))
+  (default-to false (map-get? authorized-verifiers principal)))
+
+(define-read-only (get-stats)
+  { total-registered: (var-get total-registered),
+    total-verified: (var-get total-verified),
+    next-token-id: (var-get next-token-id) })
+
+(define-read-only (get-collection-stats (collection (string-ascii 40)))
+  (default-to { total: u0, verified: u0 }
+    (map-get? collection-stats collection)))
