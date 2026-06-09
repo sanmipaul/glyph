@@ -49,3 +49,25 @@
 
 (define-read-only (get-collection-ltv (collection (string-ascii 40)))
   (map-get? collection-ltv collection))
+
+(define-read-only (calculate-interest (user principal) (token-id uint))
+  (match (map-get? loan-positions { user: user, token-id: token-id })
+    pos
+    (let* ((blocks-elapsed (- block-height (get interest-start-block pos)))
+           (rate-per-block (/ (* (get loan-amount pos) INTEREST-RATE-ANNUAL)
+                              (* BLOCKS-PER-YEAR BASIS-POINTS)))
+           (interest (* rate-per-block blocks-elapsed)))
+      (ok (+ (get accrued-interest pos) interest)))
+    ERR-NO-POSITION))
+
+(define-read-only (is-liquidatable (user principal) (token-id uint))
+  (match (map-get? loan-positions { user: user, token-id: token-id })
+    pos
+    (match (map-get? appraisals token-id)
+      appraisal
+      (let* ((interest (unwrap-panic (calculate-interest user token-id)))
+             (total-debt (+ (get loan-amount pos) interest))
+             (threshold-value (/ (* (get value appraisal) LIQUIDATION-THRESHOLD) BASIS-POINTS)))
+        (>= total-debt threshold-value))
+      false)
+    false))
