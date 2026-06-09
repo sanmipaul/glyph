@@ -1,0 +1,35 @@
+[project]
+name = "glyph"
+description = "Bitcoin Ordinals DeFi Bridge — bring inscriptions into Stacks DeFi as collateral and yield assets"
+authors = []
+telemetry = false
+cache_dir = "./.clarinet"
+
+[contracts.ordinal-registry]
+path = "contracts/ordinal-registry.clar"
+clarity_version = 3
+epoch = "3.0"
+
+[contracts.wrapped-ordinal-nft]
+path = "contracts/wrapped-ordinal-nft.clar"
+clarity_version = 3
+epoch = "3.0"
+
+[contracts.bridge-vault]
+path = "contracts/bridge-vault.clar"
+clarity_version = 3
+epoch = "3.0"
+
+[contracts.ordinal-collateral]
+path = "contracts/ordinal-collateral.clar"
+clarity_version = 3
+epoch = "3.0"
+
+[contracts.yield-distributor]
+path = "contracts/yield-distributor.clar"
+clarity_version = 3
+epoch = "3.0"
+
+[repl]
+costs_version = 3
+parser_version = 3
