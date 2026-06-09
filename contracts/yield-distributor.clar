@@ -86,3 +86,48 @@
         (try! (as-contract (stx-transfer? pending tx-sender tx-sender))))
       (print { event: "yield-claimed", user: tx-sender, token-id: token-id, amount: pending })
       (ok pending))))
+
+(define-public (unstake (token-id uint))
+  (let ((stake (unwrap! (map-get? staked-tokens { user: tx-sender, token-id: token-id }) ERR-NOT-STAKED)))
+    ;; Claim any pending yield first
+    (let ((pending (unwrap-panic (calculate-pending-yield tx-sender token-id))))
+      (when (> pending u0)
+        (let ((asset-id (get yield-asset (unwrap-panic (map-get? collection-yield-config (get collection stake))))))
+          (when (>= (get-treasury-balance asset-id) pending)
+            (map-set yield-treasury asset-id (- (get-treasury-balance asset-id) pending))
+            (when (is-eq asset-id u1)
+              (unwrap-panic (as-contract (stx-transfer? pending tx-sender tx-sender)))))))
+      (try! (as-contract (contract-call? (var-get wrapped-nft-contract) transfer token-id (as-contract tx-sender) tx-sender)))
+      (match (map-get? collection-yield-config (get collection stake))
+        config
+        (map-set collection-yield-config (get collection stake)
+          (merge config { total-staked: (if (> (get total-staked config) u0)
+                                          (- (get total-staked config) u1) u0) }))
+        true)
+      (map-delete staked-tokens { user: tx-sender, token-id: token-id })
+      (var-set total-staked (if (> (var-get total-staked) u0) (- (var-get total-staked) u1) u0))
+      (print { event: "unstake", user: tx-sender, token-id: token-id })
+      (ok pending))))
+
+;; Admin functions
+
+(define-public (fund-yield (asset-id uint) (amount uint))
+  (begin
+    (asserts! (is-eq tx-sender (var-get owner)) ERR-UNAUTHORIZED)
+    (when (is-eq asset-id u1) (try! (stx-transfer? amount tx-sender (as-contract tx-sender))))
+    (map-set yield-treasury asset-id (+ (get-treasury-balance asset-id) amount))
+    (ok true)))
+
+(define-public (set-collection-config (collection (string-ascii 40)) (rate-per-block uint) (yield-asset uint))
+  (begin
+    (asserts! (is-eq tx-sender (var-get owner)) ERR-UNAUTHORIZED)
+    (let ((existing (default-to { rate-per-block: u0, total-staked: u0, yield-asset: u1, active: true }
+                      (map-get? collection-yield-config collection))))
+      (map-set collection-yield-config collection
+        (merge existing { rate-per-block: rate-per-block, yield-asset: yield-asset, active: true })))
+    (ok true)))
+
+(define-public (set-wrapped-nft-contract (contract principal))
+  (begin (asserts! (is-eq tx-sender (var-get owner)) ERR-UNAUTHORIZED) (var-set wrapped-nft-contract contract) (ok true)))
+(define-public (set-registry-contract (contract principal))
+  (begin (asserts! (is-eq tx-sender (var-get owner)) ERR-UNAUTHORIZED) (var-set registry-contract contract) (ok true)))
