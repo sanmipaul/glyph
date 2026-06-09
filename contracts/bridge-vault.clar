@@ -35,3 +35,17 @@
 (define-data-var owner principal CONTRACT-OWNER)
 (define-data-var wrapped-nft-contract principal CONTRACT-OWNER)
 (define-data-var registry-contract principal CONTRACT-OWNER)
+
+;; Read-only functions
+
+(define-read-only (get-pending-withdrawal (withdrawal-id uint))
+  (map-get? pending-withdrawals { withdrawal-id: withdrawal-id }))
+
+(define-read-only (is-signer (principal principal))
+  (default-to false (map-get? signers principal)))
+
+(define-read-only (has-approved (withdrawal-id uint) (signer principal))
+  (default-to false (map-get? signer-approvals { withdrawal-id: withdrawal-id, signer: signer })))
+
+(define-read-only (get-required-signatures)
+  (var-get required-signatures))
