@@ -45,3 +45,27 @@
           approved (is-eq caller approved)
           false)
         (is-approved-for-all token-owner caller))))
+
+;; SIP-009 transfer
+
+(define-public (transfer (token-id uint) (sender principal) (recipient principal))
+  (begin
+    (asserts! (is-eq tx-sender sender) ERR-NOT-OWNER)
+    (asserts! (is-owner-or-approved token-id sender) ERR-NOT-APPROVED)
+    (try! (nft-transfer? glyph-ordinal token-id sender recipient))
+    (map-delete token-approvals token-id)
+    (print { event: "nft-transfer", token-id: token-id, from: sender, to: recipient })
+    (ok true)))
+
+;; Approval functions
+
+(define-public (set-approved (token-id uint) (operator (optional principal)))
+  (begin
+    (asserts! (is-eq (some tx-sender) (nft-get-owner? glyph-ordinal token-id)) ERR-NOT-OWNER)
+    (map-set token-approvals token-id operator)
+    (ok true)))
+
+(define-public (set-approval-for-all (operator principal) (approved bool))
+  (begin
+    (map-set operator-approvals { owner: tx-sender, operator: operator } approved)
+    (ok true)))
