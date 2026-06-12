@@ -1,0 +1,46 @@
+---
+id: 0
+name: Mainnet deployment
+network: mainnet
+stacks-node: "https://api.mainnet.hiro.so"
+bitcoin-node: "http://blockstack:blockstacksystem@bitcoin.blockstack.com:8332"
+plan:
+  batches:
+    - id: 0
+      transactions:
+        - contract-publish:
+            contract-name: bridge-vault
+            expected-sender: SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR
+            cost: 68420
+            path: contracts/bridge-vault.clar
+            anchor-block-only: true
+            clarity-version: 3
+        - contract-publish:
+            contract-name: ordinal-collateral
+            expected-sender: SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR
+            cost: 78550
+            path: contracts/ordinal-collateral.clar
+            anchor-block-only: true
+            clarity-version: 3
+        - contract-publish:
+            contract-name: ordinal-registry
+            expected-sender: SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR
+            cost: 49870
+            path: contracts/ordinal-registry.clar
+            anchor-block-only: true
+            clarity-version: 3
+        - contract-publish:
+            contract-name: wrapped-ordinal-nft
+            expected-sender: SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR
+            cost: 42730
+            path: contracts/wrapped-ordinal-nft.clar
+            anchor-block-only: true
+            clarity-version: 3
+        - contract-publish:
+            contract-name: yield-distributor
+            expected-sender: SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR
+            cost: 70010
+            path: contracts/yield-distributor.clar
+            anchor-block-only: true
+            clarity-version: 3
+      epoch: "3.0"
