@@ -39,6 +39,36 @@ export async function isApprovedForAll(owner: string, operator: string): Promise
   return Boolean(r.value);
 }
 
+// ── ordinal-collateral ──────────────────────────────────────────────────────
+
+export async function getAppraisal(tokenId: number): Promise<unknown> {
+  return ro(CONTRACT_NAMES.ordinalCollateral, 'get-appraisal', [uintCV(tokenId)]);
+}
+
+export async function getPosition(user: string, tokenId: number): Promise<unknown> {
+  return ro(CONTRACT_NAMES.ordinalCollateral, 'get-position',
+    [standardPrincipalCV(user), uintCV(tokenId)]);
+}
+
+export async function getCollectionLtv(collection: string): Promise<number | null> {
+  const r = await ro(CONTRACT_NAMES.ordinalCollateral, 'get-collection-ltv',
+    [stringAsciiCV(collection)]) as any;
+  return r.value != null ? Number(r.value) : null;
+}
+
+export async function isLiquidatable(user: string, tokenId: number): Promise<boolean> {
+  const r = await ro(CONTRACT_NAMES.ordinalCollateral, 'is-liquidatable',
+    [standardPrincipalCV(user), uintCV(tokenId)]) as any;
+  return Boolean(r.value);
+}
+
+export async function calculateInterest(user: string, tokenId: number): Promise<number | null> {
+  const r = await ro(CONTRACT_NAMES.ordinalCollateral, 'calculate-interest',
+    [standardPrincipalCV(user), uintCV(tokenId)]) as any;
+  if (!r.success) return null;
+  return Number(r.value.value);
+}
+
 // ── bridge-vault ────────────────────────────────────────────────────────────
 
 export async function getPendingWithdrawal(withdrawalId: number): Promise<unknown> {
