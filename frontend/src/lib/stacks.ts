@@ -39,6 +39,23 @@ export async function isApprovedForAll(owner: string, operator: string): Promise
   return Boolean(r.value);
 }
 
+// ── ordinal-registry ────────────────────────────────────────────────────────
+
+export async function getOrdinal(inscriptionId: string): Promise<unknown> {
+  return ro(CONTRACT_NAMES.ordinalRegistry, 'get-ordinal', [stringAsciiCV(inscriptionId)]);
+}
+
+export async function getInscriptionId(tokenId: number): Promise<string | null> {
+  const r = await ro(CONTRACT_NAMES.ordinalRegistry, 'get-inscription-id', [uintCV(tokenId)]) as any;
+  return r.value?.value ?? null;
+}
+
+export async function isVerifier(addr: string): Promise<boolean> {
+  const r = await ro(CONTRACT_NAMES.ordinalRegistry, 'is-verifier',
+    [standardPrincipalCV(addr)]) as any;
+  return Boolean(r.value);
+}
+
 // Enumerate all tokens owned by a given address up to lastTokenId
 export async function getTokensOwnedBy(address: string): Promise<number[]> {
   const lastId = await getLastTokenId();
