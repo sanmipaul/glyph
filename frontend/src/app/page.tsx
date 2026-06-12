@@ -13,6 +13,14 @@ export default function Home() {
           Wrap your inscriptions as SIP-009 NFTs. Stake for yield, use as collateral,
           or bridge back to Bitcoin — all through a trustless multi-sig vault.
         </p>
+        <div className="mt-4 flex flex-wrap justify-center gap-4">
+          <a href="/ordinals" className="rounded-lg bg-orange-500 px-6 py-3 font-semibold text-white hover:bg-orange-400 transition-colors">
+            View My Ordinals
+          </a>
+          <a href="/yield" className="rounded-lg border border-zinc-700 px-6 py-3 font-semibold text-zinc-200 hover:border-zinc-500 transition-colors">
+            Earn Yield
+          </a>
+        </div>
       </main>
     </>
   );
