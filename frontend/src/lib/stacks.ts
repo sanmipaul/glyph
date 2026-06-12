@@ -7,9 +7,37 @@ import {
   ClarityValue,
 } from '@stacks/transactions';
 import { STACKS_MAINNET } from '@stacks/network';
-import { DEPLOYER, HIRO_API } from './constants';
+import { DEPLOYER, CONTRACT_NAMES, HIRO_API } from './constants';
 
 const network = { ...STACKS_MAINNET, client: { baseUrl: HIRO_API } };
+
+// ── wrapped-ordinal-nft ─────────────────────────────────────────────────────
+
+export async function getLastTokenId(): Promise<number> {
+  const r = await ro(CONTRACT_NAMES.wrappedOrdinalNft, 'get-last-token-id', []) as any;
+  return Number(r.value.value);
+}
+
+export async function getOwner(tokenId: number): Promise<string | null> {
+  const r = await ro(CONTRACT_NAMES.wrappedOrdinalNft, 'get-owner', [uintCV(tokenId)]) as any;
+  return r.value.value?.value ?? null;
+}
+
+export async function getTokenUri(tokenId: number): Promise<string | null> {
+  const r = await ro(CONTRACT_NAMES.wrappedOrdinalNft, 'get-token-uri', [uintCV(tokenId)]) as any;
+  return r.value.value?.value ?? null;
+}
+
+export async function getApproved(tokenId: number): Promise<string | null> {
+  const r = await ro(CONTRACT_NAMES.wrappedOrdinalNft, 'get-approved', [uintCV(tokenId)]) as any;
+  return r.value?.value ?? null;
+}
+
+export async function isApprovedForAll(owner: string, operator: string): Promise<boolean> {
+  const r = await ro(CONTRACT_NAMES.wrappedOrdinalNft, 'is-approved-for-all',
+    [standardPrincipalCV(owner), standardPrincipalCV(operator)]) as any;
+  return Boolean(r.value);
+}
 
 // Base read-only call helper — returns the JSON-deserialized CV result
 export async function ro(
