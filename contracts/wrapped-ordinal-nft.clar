@@ -70,7 +70,7 @@
     (map-set operator-approvals { owner: tx-sender, operator: operator } approved)
     (ok true)))
 
-;; Mint — only callable by ordinal-registry or vault (for re-wrapping)
+;; Mint - only callable by ordinal-registry or vault (for re-wrapping)
 
 (define-public (mint (recipient principal) (token-id uint) (uri (string-ascii 256)))
   (begin
@@ -80,12 +80,13 @@
     (asserts! (is-none (nft-get-owner? glyph-ordinal token-id)) ERR-ALREADY-EXISTS)
     (try! (nft-mint? glyph-ordinal token-id recipient))
     (map-set token-uris token-id uri)
-    (when (> token-id (var-get last-token-id))
-      (var-set last-token-id token-id))
+    (if (> token-id (var-get last-token-id))
+      (var-set last-token-id token-id)
+      true)
     (print { event: "nft-mint", token-id: token-id, recipient: recipient, uri: uri })
     (ok true)))
 
-;; Burn — only callable by bridge-vault during withdrawals
+;; Burn - only callable by bridge-vault during withdrawals
 
 (define-public (burn (token-id uint))
   (begin
