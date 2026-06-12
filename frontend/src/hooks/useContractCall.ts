@@ -37,6 +37,11 @@ export function useContractCall() {
       onFinish: ({ txId }) => {
         setTxid(txId);
         setStatus('pending');
+        poll(txId, opts.onSuccess, (reason) => {
+          setStatus('error');
+          setError(reason);
+          opts.onError?.(reason);
+        });
       },
       onCancel: () => {
         setStatus('idle');
@@ -51,4 +56,32 @@ export function useContractCall() {
   }, []);
 
   return { call, status, txid, error, reset };
+}
+
+const TERMINAL_ERRORS = new Set([
+  'abort_by_response', 'abort_by_post_condition',
+  'dropped_replace_by_fee', 'dropped_stale_garbage_collect',
+  'dropped_too_expensive', 'dropped_replace_across_fork',
+]);
+
+function poll(
+  txid: string,
+  onSuccess?: (txid: string) => void,
+  onError?: (reason: string) => void,
+) {
+  const timer = setInterval(async () => {
+    try {
+      const r = await fetch(`${HIRO_API}/extended/v1/tx/0x${txid}`);
+      const d = await r.json();
+      if (d.tx_status === 'success') {
+        clearInterval(timer);
+        onSuccess?.(txid);
+      } else if (TERMINAL_ERRORS.has(d.tx_status)) {
+        clearInterval(timer);
+        onError?.(d.tx_result?.repr ?? d.tx_status);
+      }
+    } catch {
+      // network hiccup — keep polling
+    }
+  }, 10_000);
 }
