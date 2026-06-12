@@ -39,6 +39,38 @@ export async function isApprovedForAll(owner: string, operator: string): Promise
   return Boolean(r.value);
 }
 
+// ── Hiro NFT API ─────────────────────────────────────────────────────────────
+
+export async function getNftHoldings(address: string): Promise<{
+  asset_identifier: string;
+  value: { repr: string; hex: string };
+}[]> {
+  const url = `${HIRO_API}/extended/v1/tokens/nft/holdings?principal=${address}&asset_identifiers=${DEPLOYER}.wrapped-ordinal-nft::glyph-ordinal&limit=50`;
+  const r = await fetch(url);
+  const d = await r.json();
+  return d.results ?? [];
+}
+
+// ── Transaction status polling ────────────────────────────────────────────────
+
+const TERMINAL_ERRORS = new Set([
+  'abort_by_response', 'abort_by_post_condition',
+  'dropped_replace_by_fee', 'dropped_stale_garbage_collect',
+  'dropped_too_expensive', 'dropped_replace_across_fork',
+]);
+
+export async function pollTx(txid: string): Promise<'success' | 'error' | 'pending'> {
+  try {
+    const r = await fetch(`${HIRO_API}/extended/v1/tx/0x${txid}`);
+    const d = await r.json();
+    if (d.tx_status === 'success') return 'success';
+    if (TERMINAL_ERRORS.has(d.tx_status)) return 'error';
+    return 'pending';
+  } catch {
+    return 'pending';
+  }
+}
+
 // ── yield-distributor ───────────────────────────────────────────────────────
 
 export async function getStake(user: string, tokenId: number): Promise<unknown> {
