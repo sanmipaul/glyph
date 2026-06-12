@@ -22,8 +22,6 @@
 (define-map yield-treasury uint uint)   ;; asset-id -> available amount
 
 (define-data-var owner principal CONTRACT-OWNER)
-(define-data-var wrapped-nft-contract principal CONTRACT-OWNER)
-(define-data-var registry-contract principal CONTRACT-OWNER)
 (define-data-var total-staked uint u0)
 
 ;; Read-only functions
@@ -39,10 +37,10 @@
 
 (define-read-only (calculate-pending-yield (user principal) (token-id uint))
   (match (map-get? staked-tokens { user: user, token-id: token-id })
-    stake
-    (match (map-get? collection-yield-config (get collection stake))
+    staked-info
+    (match (map-get? collection-yield-config (get collection staked-info))
       config
-      (let* ((blocks-elapsed (- block-height (get claimed-up-to-block stake)))
+      (let ((blocks-elapsed (- stacks-block-height (get claimed-up-to-block staked-info)))
              (pending (* blocks-elapsed (get rate-per-block config))))
         (ok pending))
       ERR-COLLECTION-NOT-CONFIGURED)
@@ -53,15 +51,15 @@
 (define-public (stake (token-id uint))
   (begin
     (asserts! (is-none (map-get? staked-tokens { user: tx-sender, token-id: token-id })) ERR-ALREADY-STAKED)
-    (let ((inscription-id (unwrap! (contract-call? (var-get registry-contract) get-inscription-id token-id) ERR-NOT-FOUND))
-          (ordinal-data (unwrap! (contract-call? (var-get registry-contract) get-ordinal
-                          (unwrap-panic (contract-call? (var-get registry-contract) get-inscription-id token-id))) ERR-NOT-FOUND)))
+    (let ((inscription-id (unwrap! (contract-call? 'SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR.ordinal-registry get-inscription-id token-id) ERR-NOT-FOUND))
+          (ordinal-data (unwrap! (contract-call? 'SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR.ordinal-registry get-ordinal
+                          (unwrap-panic (contract-call? 'SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR.ordinal-registry get-inscription-id token-id))) ERR-NOT-FOUND)))
       (let ((collection (get collection ordinal-data)))
         (asserts! (is-some (map-get? collection-yield-config collection)) ERR-COLLECTION-NOT-CONFIGURED)
-        (try! (contract-call? (var-get wrapped-nft-contract) transfer token-id tx-sender (as-contract tx-sender)))
+        (try! (contract-call? 'SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR.wrapped-ordinal-nft transfer token-id tx-sender (as-contract tx-sender)))
         (map-set staked-tokens
           { user: tx-sender, token-id: token-id }
-          { staked-at: block-height, collection: collection, claimed-up-to-block: block-height })
+          { staked-at: stacks-block-height, collection: collection, claimed-up-to-block: stacks-block-height })
         (match (map-get? collection-yield-config collection)
           config
           (map-set collection-yield-config collection
@@ -72,35 +70,40 @@
         (ok true)))))
 
 (define-public (claim-yield (token-id uint))
-  (let ((stake (unwrap! (map-get? staked-tokens { user: tx-sender, token-id: token-id }) ERR-NOT-STAKED))
+  (let ((staked-info (unwrap! (map-get? staked-tokens { user: tx-sender, token-id: token-id }) ERR-NOT-STAKED))
         (pending (unwrap! (calculate-pending-yield tx-sender token-id) ERR-NOT-STAKED)))
-    (let ((config (unwrap! (map-get? collection-yield-config (get collection stake)) ERR-COLLECTION-NOT-CONFIGURED))
-          (asset-id (get yield-asset (unwrap-panic (map-get? collection-yield-config (get collection stake))))))
+    (let ((config (unwrap! (map-get? collection-yield-config (get collection staked-info)) ERR-COLLECTION-NOT-CONFIGURED))
+          (asset-id (get yield-asset (unwrap-panic (map-get? collection-yield-config (get collection staked-info))))))
       (asserts! (> pending u0) ERR-NOT-FOUND)
       (asserts! (>= (get-treasury-balance asset-id) pending) ERR-INSUFFICIENT-TREASURY)
       (map-set staked-tokens
         { user: tx-sender, token-id: token-id }
-        (merge stake { claimed-up-to-block: block-height }))
+        (merge staked-info { claimed-up-to-block: stacks-block-height }))
       (map-set yield-treasury asset-id (- (get-treasury-balance asset-id) pending))
-      (when (is-eq asset-id u1) ;; STX
-        (try! (as-contract (stx-transfer? pending tx-sender tx-sender))))
+      (if (is-eq asset-id u1) ;; STX
+        (try! (as-contract (stx-transfer? pending tx-sender tx-sender)))
+        true)
       (print { event: "yield-claimed", user: tx-sender, token-id: token-id, amount: pending })
       (ok pending))))
 
 (define-public (unstake (token-id uint))
-  (let ((stake (unwrap! (map-get? staked-tokens { user: tx-sender, token-id: token-id }) ERR-NOT-STAKED)))
+  (let ((staked-info (unwrap! (map-get? staked-tokens { user: tx-sender, token-id: token-id }) ERR-NOT-STAKED)))
     ;; Claim any pending yield first
     (let ((pending (unwrap-panic (calculate-pending-yield tx-sender token-id))))
-      (when (> pending u0)
-        (let ((asset-id (get yield-asset (unwrap-panic (map-get? collection-yield-config (get collection stake))))))
-          (when (>= (get-treasury-balance asset-id) pending)
-            (map-set yield-treasury asset-id (- (get-treasury-balance asset-id) pending))
-            (when (is-eq asset-id u1)
-              (unwrap-panic (as-contract (stx-transfer? pending tx-sender tx-sender)))))))
-      (try! (as-contract (contract-call? (var-get wrapped-nft-contract) transfer token-id (as-contract tx-sender) tx-sender)))
-      (match (map-get? collection-yield-config (get collection stake))
+      (if (> pending u0)
+        (let ((asset-id (get yield-asset (unwrap-panic (map-get? collection-yield-config (get collection staked-info))))))
+          (if (>= (get-treasury-balance asset-id) pending)
+            (begin
+              (map-set yield-treasury asset-id (- (get-treasury-balance asset-id) pending))
+              (if (is-eq asset-id u1)
+                (unwrap-panic (as-contract (stx-transfer? pending tx-sender tx-sender)))
+                true))
+            true))
+        true)
+      (try! (as-contract (contract-call? 'SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR.wrapped-ordinal-nft transfer token-id (as-contract tx-sender) tx-sender)))
+      (match (map-get? collection-yield-config (get collection staked-info))
         config
-        (map-set collection-yield-config (get collection stake)
+        (map-set collection-yield-config (get collection staked-info)
           (merge config { total-staked: (if (> (get total-staked config) u0)
                                           (- (get total-staked config) u1) u0) }))
         true)
@@ -114,7 +117,7 @@
 (define-public (fund-yield (asset-id uint) (amount uint))
   (begin
     (asserts! (is-eq tx-sender (var-get owner)) ERR-UNAUTHORIZED)
-    (when (is-eq asset-id u1) (try! (stx-transfer? amount tx-sender (as-contract tx-sender))))
+    (if (is-eq asset-id u1) (try! (stx-transfer? amount tx-sender (as-contract tx-sender))) true)
     (map-set yield-treasury asset-id (+ (get-treasury-balance asset-id) amount))
     (ok true)))
 
@@ -126,8 +129,3 @@
       (map-set collection-yield-config collection
         (merge existing { rate-per-block: rate-per-block, yield-asset: yield-asset, active: true })))
     (ok true)))
-
-(define-public (set-wrapped-nft-contract (contract principal))
-  (begin (asserts! (is-eq tx-sender (var-get owner)) ERR-UNAUTHORIZED) (var-set wrapped-nft-contract contract) (ok true)))
-(define-public (set-registry-contract (contract principal))
-  (begin (asserts! (is-eq tx-sender (var-get owner)) ERR-UNAUTHORIZED) (var-set registry-contract contract) (ok true)))
