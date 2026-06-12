@@ -28,7 +28,6 @@
 (define-data-var total-registered uint u0)
 (define-data-var total-verified uint u0)
 (define-data-var owner principal CONTRACT-OWNER)
-(define-data-var wrapped-nft-contract principal CONTRACT-OWNER)
 
 ;; Read-only functions
 
@@ -43,8 +42,8 @@
     data (get verified data)
     false))
 
-(define-read-only (is-verifier (principal principal))
-  (default-to false (map-get? authorized-verifiers principal)))
+(define-read-only (is-verifier (verifier principal))
+  (default-to false (map-get? authorized-verifiers verifier)))
 
 (define-read-only (get-stats)
   { total-registered: (var-get total-registered),
@@ -75,7 +74,7 @@
           content-type: content-type,
           sat-number: sat-number,
           verified: false,
-          registered-at: block-height })
+          registered-at: stacks-block-height })
       (map-set token-to-inscription token-id inscription-id)
       (map-set collection-stats collection
         { total: (+ (get total coll-stats) u1), verified: (get verified coll-stats) })
@@ -101,7 +100,7 @@
         { total: (get total coll-stats), verified: (+ (get verified coll-stats) u1) })
       (var-set total-verified (+ (var-get total-verified) u1))
       ;; Mint the wrapped NFT
-      (try! (contract-call? (var-get wrapped-nft-contract) mint
+      (try! (contract-call? 'SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR.wrapped-ordinal-nft mint
               (get owner data)
               (get token-id data)
               (concat "https://glyph.btc/ordinal/" inscription-id)))
@@ -120,8 +119,3 @@
     (map-delete authorized-verifiers verifier)
     (ok true)))
 
-(define-public (set-wrapped-nft-contract (contract principal))
-  (begin
-    (asserts! (is-eq tx-sender (var-get owner)) ERR-UNAUTHORIZED)
-    (var-set wrapped-nft-contract contract)
-    (ok true)))
