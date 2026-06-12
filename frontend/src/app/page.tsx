@@ -21,6 +21,19 @@ export default function Home() {
             Earn Yield
           </a>
         </div>
+
+        <div className="mt-16 grid w-full max-w-4xl grid-cols-1 gap-4 sm:grid-cols-3">
+          {[
+            { title: 'Wrap', desc: 'Register a Bitcoin Ordinal inscription and receive a SIP-009 NFT on Stacks.' },
+            { title: 'Stake', desc: 'Stake wrapped Ordinals from eligible collections to earn per-block yield.' },
+            { title: 'Borrow', desc: 'Collateralize your Ordinals and borrow against their appraised value.' },
+          ].map(({ title, desc }) => (
+            <div key={title} className="rounded-xl border border-zinc-800 bg-zinc-900 p-5 text-left">
+              <p className="mb-2 text-sm font-semibold text-orange-400">{title}</p>
+              <p className="text-sm text-zinc-400">{desc}</p>
+            </div>
+          ))}
+        </div>
       </main>
     </>
   );
