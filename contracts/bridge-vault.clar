@@ -33,16 +33,14 @@
 (define-data-var total-signers uint u0)
 (define-data-var withdrawal-nonce uint u0)
 (define-data-var owner principal CONTRACT-OWNER)
-(define-data-var wrapped-nft-contract principal CONTRACT-OWNER)
-(define-data-var registry-contract principal CONTRACT-OWNER)
 
 ;; Read-only functions
 
 (define-read-only (get-pending-withdrawal (withdrawal-id uint))
   (map-get? pending-withdrawals { withdrawal-id: withdrawal-id }))
 
-(define-read-only (is-signer (principal principal))
-  (default-to false (map-get? signers principal)))
+(define-read-only (is-signer (addr principal))
+  (default-to false (map-get? signers addr)))
 
 (define-read-only (has-approved (withdrawal-id uint) (signer principal))
   (default-to false (map-get? signer-approvals { withdrawal-id: withdrawal-id, signer: signer })))
@@ -55,10 +53,10 @@
 (define-public (initiate-withdrawal (token-id uint) (btc-address (string-ascii 62)))
   (begin
     (asserts! (> (len btc-address) u25) ERR-INVALID-BTC-ADDRESS)
-    (let ((inscription-id (unwrap! (contract-call? (var-get registry-contract) get-inscription-id token-id) ERR-NOT-FOUND))
+    (let ((inscription-id (unwrap! (contract-call? 'SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR.ordinal-registry get-inscription-id token-id) ERR-NOT-FOUND))
           (withdrawal-id (var-get withdrawal-nonce)))
       ;; Transfer NFT to vault for holding during bridge process
-      (try! (contract-call? (var-get wrapped-nft-contract) transfer token-id tx-sender (as-contract tx-sender)))
+      (try! (contract-call? 'SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR.wrapped-ordinal-nft transfer token-id tx-sender (as-contract tx-sender)))
       (map-set pending-withdrawals
         { withdrawal-id: withdrawal-id }
         { user: tx-sender,
@@ -69,7 +67,7 @@
           approved-by: (list),
           executed: false,
           cancelled: false,
-          created-at: block-height })
+          created-at: stacks-block-height })
       (var-set withdrawal-nonce (+ withdrawal-id u1))
       (print { event: "withdrawal-initiated",
                withdrawal-id: withdrawal-id,
@@ -85,7 +83,7 @@
     (let ((w (unwrap! (map-get? pending-withdrawals { withdrawal-id: withdrawal-id }) ERR-NOT-FOUND)))
       (asserts! (not (get executed w)) ERR-ALREADY-EXECUTED)
       (asserts! (not (get cancelled w)) ERR-ALREADY-EXECUTED)
-      (asserts! (< (- block-height (get created-at w)) WITHDRAWAL-EXPIRY) ERR-EXPIRED)
+      (asserts! (< (- stacks-block-height (get created-at w)) WITHDRAWAL-EXPIRY) ERR-EXPIRED)
       (map-set signer-approvals { withdrawal-id: withdrawal-id, signer: tx-sender } true)
       (map-set pending-withdrawals
         { withdrawal-id: withdrawal-id }
@@ -98,9 +96,9 @@
     (asserts! (not (get executed w)) ERR-ALREADY-EXECUTED)
     (asserts! (not (get cancelled w)) ERR-ALREADY-EXECUTED)
     (asserts! (>= (get approvals w) (var-get required-signatures)) ERR-INSUFFICIENT-APPROVALS)
-    (asserts! (< (- block-height (get created-at w)) WITHDRAWAL-EXPIRY) ERR-EXPIRED)
-    ;; Burn the wrapped NFT — signals off-chain bridge to release the inscription on Bitcoin
-    (try! (as-contract (contract-call? (var-get wrapped-nft-contract) burn (get token-id w))))
+    (asserts! (< (- stacks-block-height (get created-at w)) WITHDRAWAL-EXPIRY) ERR-EXPIRED)
+    ;; Burn the wrapped NFT - signals off-chain bridge to release the inscription on Bitcoin
+    (try! (as-contract (contract-call? 'SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR.wrapped-ordinal-nft burn (get token-id w))))
     (map-set pending-withdrawals
       { withdrawal-id: withdrawal-id }
       (merge w { executed: true }))
@@ -116,9 +114,9 @@
   (let ((w (unwrap! (map-get? pending-withdrawals { withdrawal-id: withdrawal-id }) ERR-NOT-FOUND)))
     (asserts! (not (get executed w)) ERR-ALREADY-EXECUTED)
     (asserts! (not (get cancelled w)) ERR-ALREADY-EXECUTED)
-    (asserts! (>= (- block-height (get created-at w)) WITHDRAWAL-EXPIRY) ERR-NOT-EXPIRED)
+    (asserts! (>= (- stacks-block-height (get created-at w)) WITHDRAWAL-EXPIRY) ERR-NOT-EXPIRED)
     ;; Return NFT to user
-    (try! (as-contract (contract-call? (var-get wrapped-nft-contract) transfer
+    (try! (as-contract (contract-call? 'SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR.wrapped-ordinal-nft transfer
             (get token-id w) (as-contract tx-sender) (get user w))))
     (map-set pending-withdrawals
       { withdrawal-id: withdrawal-id }
@@ -150,7 +148,3 @@
     (var-set required-signatures n)
     (ok true)))
 
-(define-public (set-wrapped-nft-contract (contract principal))
-  (begin (asserts! (is-eq tx-sender (var-get owner)) ERR-UNAUTHORIZED) (var-set wrapped-nft-contract contract) (ok true)))
-(define-public (set-registry-contract (contract principal))
-  (begin (asserts! (is-eq tx-sender (var-get owner)) ERR-UNAUTHORIZED) (var-set registry-contract contract) (ok true)))
