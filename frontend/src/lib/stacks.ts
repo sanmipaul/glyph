@@ -39,6 +39,29 @@ export async function isApprovedForAll(owner: string, operator: string): Promise
   return Boolean(r.value);
 }
 
+// ── bridge-vault ────────────────────────────────────────────────────────────
+
+export async function getPendingWithdrawal(withdrawalId: number): Promise<unknown> {
+  return ro(CONTRACT_NAMES.bridgeVault, 'get-pending-withdrawal', [uintCV(withdrawalId)]);
+}
+
+export async function isSigner(addr: string): Promise<boolean> {
+  const r = await ro(CONTRACT_NAMES.bridgeVault, 'is-signer',
+    [standardPrincipalCV(addr)]) as any;
+  return Boolean(r.value);
+}
+
+export async function hasApproved(withdrawalId: number, signer: string): Promise<boolean> {
+  const r = await ro(CONTRACT_NAMES.bridgeVault, 'has-approved',
+    [uintCV(withdrawalId), standardPrincipalCV(signer)]) as any;
+  return Boolean(r.value);
+}
+
+export async function getRequiredSignatures(): Promise<number> {
+  const r = await ro(CONTRACT_NAMES.bridgeVault, 'get-required-signatures', []) as any;
+  return Number(r.value);
+}
+
 // ── ordinal-registry ────────────────────────────────────────────────────────
 
 export async function getOrdinal(inscriptionId: string): Promise<unknown> {
