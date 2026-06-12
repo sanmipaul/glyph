@@ -39,6 +39,31 @@ export async function isApprovedForAll(owner: string, operator: string): Promise
   return Boolean(r.value);
 }
 
+// ── yield-distributor ───────────────────────────────────────────────────────
+
+export async function getStake(user: string, tokenId: number): Promise<unknown> {
+  return ro(CONTRACT_NAMES.yieldDistributor, 'get-stake',
+    [standardPrincipalCV(user), uintCV(tokenId)]);
+}
+
+export async function getCollectionConfig(collection: string): Promise<unknown> {
+  return ro(CONTRACT_NAMES.yieldDistributor, 'get-collection-config',
+    [stringAsciiCV(collection)]);
+}
+
+export async function getTreasuryBalance(assetId: number): Promise<number> {
+  const r = await ro(CONTRACT_NAMES.yieldDistributor, 'get-treasury-balance',
+    [uintCV(assetId)]) as any;
+  return Number(r.value);
+}
+
+export async function calculatePendingYield(user: string, tokenId: number): Promise<number | null> {
+  const r = await ro(CONTRACT_NAMES.yieldDistributor, 'calculate-pending-yield',
+    [standardPrincipalCV(user), uintCV(tokenId)]) as any;
+  if (!r.success) return null;
+  return Number(r.value.value);
+}
+
 // ── ordinal-collateral ──────────────────────────────────────────────────────
 
 export async function getAppraisal(tokenId: number): Promise<unknown> {
