@@ -5,7 +5,6 @@
 node_modules/
 .DS_Store
 
-# Local deployment and interaction scripts
-*.mjs
-deploy-single.js
-interact*.js
+/deploy-single.mjs
+/interact.mjs
+/interact-retry.mjs
