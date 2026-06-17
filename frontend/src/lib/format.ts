@@ -21,3 +21,12 @@ export function blocksToDays(blocks: number, secsPerBlock = 5): string {
   if (days < 1) return `${(seconds / 3600).toFixed(1)}h`;
   return `${days.toFixed(1)}d`;
 }
+
+export function stxToMicro(stx: number): number {
+  return Math.floor(stx * 1_000_000);
+}
+
+export function shortHash(hash: string, chars = 8): string {
+  if (hash.length <= chars * 2 + 3) return hash;
+  return `${hash.slice(0, chars)}…${hash.slice(-chars)}`;
+}
