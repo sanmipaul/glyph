@@ -1,10 +1,22 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 import { useWallet } from '@/context/WalletContext';
+
+const LINKS = [
+  { href: '/ordinals', label: 'My Ordinals' },
+  { href: '/yield',    label: 'Yield' },
+  { href: '/bridge',   label: 'Bridge' },
+  { href: '/borrow',   label: 'Borrow' },
+  { href: '/registry', label: 'Registry' },
+];
 
 export function Nav() {
   const { address, connected, connect, disconnect } = useWallet();
+  const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-50 border-b border-zinc-800 bg-zinc-950/80 backdrop-blur">
@@ -13,12 +25,24 @@ export function Nav() {
           <Link href="/" className="text-lg font-bold tracking-tight text-orange-400">
             Glyph
           </Link>
-          <nav className="hidden gap-6 text-sm text-zinc-400 sm:flex">
-            <Link href="/ordinals" className="hover:text-zinc-50 transition-colors">My Ordinals</Link>
-            <Link href="/yield"    className="hover:text-zinc-50 transition-colors">Yield</Link>
-            <Link href="/bridge"   className="hover:text-zinc-50 transition-colors">Bridge</Link>
-            <Link href="/borrow"   className="hover:text-zinc-50 transition-colors">Borrow</Link>
-            <Link href="/registry" className="hover:text-zinc-50 transition-colors">Registry</Link>
+          <nav className="hidden gap-6 text-sm sm:flex">
+            {LINKS.map(({ href, label }) => {
+              const active = pathname === href;
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`transition-colors ${
+                    active
+                      ? 'text-zinc-50 font-medium'
+                      : 'text-zinc-400 hover:text-zinc-50'
+                  }`}
+                >
+                  {label}
+                  {active && <span className="mt-0.5 block h-0.5 rounded-full bg-orange-400" />}
+                </Link>
+              );
+            })}
           </nav>
         </div>
 
@@ -46,8 +70,38 @@ export function Nav() {
               Connect Wallet
             </button>
           )}
+
+          {/* Mobile hamburger */}
+          <button
+            onClick={() => setMenuOpen((v) => !v)}
+            className="sm:hidden rounded p-1.5 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"
+            aria-label="Toggle menu"
+          >
+            {menuOpen ? '✕' : '☰'}
+          </button>
         </div>
       </div>
+
+      {/* Mobile drawer */}
+      {menuOpen && (
+        <div className="sm:hidden border-t border-zinc-800 bg-zinc-950 px-4 py-3 flex flex-col gap-3">
+          {LINKS.map(({ href, label }) => {
+            const active = pathname === href;
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setMenuOpen(false)}
+                className={`text-sm py-1 transition-colors ${
+                  active ? 'text-orange-400 font-medium' : 'text-zinc-400 hover:text-zinc-50'
+                }`}
+              >
+                {label}
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </header>
   );
 }
