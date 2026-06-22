@@ -8,19 +8,23 @@ import { SkeletonRow } from '@/components/ui/Skeleton';
 import { useWallet } from '@/context/WalletContext';
 import { useOrdinals } from '@/hooks/useOrdinals';
 import { useLoans } from '@/hooks/useLoans';
+import { useIsAppraiser } from '@/hooks/useIsAppraiser';
 import { LoanTable } from './LoanTable';
 import { OpenLoanForm } from './OpenLoanForm';
+import { AppraiseForm } from './AppraiseForm';
 
 export default function BorrowPage() {
   const { address, connected, connect } = useWallet();
   const { ordinals, loading: ordinalsLoading } = useOrdinals(address);
   const tokenIds = ordinals.map((o) => o.tokenId);
   const { loans, loading: loansLoading, reload } = useLoans(address, tokenIds);
+  const isAppraiser = useIsAppraiser(address);
   const [showForm, setShowForm] = useState(false);
+  const [showAppraise, setShowAppraise] = useState(false);
 
   const loading = ordinalsLoading || loansLoading;
-  const stakedIds = loans.map((l) => l.tokenId);
-  const available = tokenIds.filter((id) => !stakedIds.includes(id));
+  const loanedIds = loans.map((l) => l.tokenId);
+  const available = tokenIds.filter((id) => !loanedIds.includes(id));
 
   return (
     <>
@@ -31,12 +35,22 @@ export default function BorrowPage() {
           description="Use wrapped Ordinals as collateral to borrow STX at 5% APR."
           action={
             connected ? (
-              <button
-                onClick={() => setShowForm(true)}
-                className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-400 transition-colors"
-              >
-                + Open Loan
-              </button>
+              <div className="flex gap-2">
+                {isAppraiser && (
+                  <button
+                    onClick={() => setShowAppraise(true)}
+                    className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 hover:border-zinc-500 transition-colors"
+                  >
+                    Appraise Token
+                  </button>
+                )}
+                <button
+                  onClick={() => setShowForm(true)}
+                  className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-400 transition-colors"
+                >
+                  + Open Loan
+                </button>
+              </div>
             ) : null
           }
         />
@@ -74,6 +88,13 @@ export default function BorrowPage() {
           availableTokenIds={available}
           onClose={() => setShowForm(false)}
           onSuccess={() => { setShowForm(false); reload(); }}
+        />
+
+        <AppraiseForm
+          open={showAppraise}
+          tokenIds={tokenIds}
+          onClose={() => setShowAppraise(false)}
+          onSuccess={() => { setShowAppraise(false); reload(); }}
         />
       </main>
     </>
