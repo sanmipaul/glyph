@@ -8,3 +8,4 @@ export { Modal } from './Modal';
 export { ToastProvider, useToast } from './Toast';
 export { Skeleton, SkeletonCard, SkeletonRow } from './Skeleton';
 export { ConfirmDialog } from './ConfirmDialog';
+export { ConnectPrompt } from './ConnectPrompt';
