@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useWallet } from '@/context/WalletContext';
+import { DEPLOYER } from '@/lib/constants';
 
 const LINKS = [
   { href: '/ordinals', label: 'My Ordinals' },
@@ -17,6 +18,8 @@ export function Nav() {
   const { address, connected, connect, disconnect } = useWallet();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const isDeployer = connected && address === DEPLOYER;
+  const visibleLinks = isDeployer ? [...LINKS, { href: '/admin', label: 'Admin' }] : LINKS;
 
   return (
     <header className="sticky top-0 z-50 border-b border-zinc-800 bg-zinc-950/80 backdrop-blur">
@@ -26,7 +29,7 @@ export function Nav() {
             Glyph
           </Link>
           <nav className="hidden gap-6 text-sm sm:flex">
-            {LINKS.map(({ href, label }) => {
+            {visibleLinks.map(({ href, label }) => {
               const active = pathname === href;
               return (
                 <Link
@@ -85,7 +88,7 @@ export function Nav() {
       {/* Mobile drawer */}
       {menuOpen && (
         <div className="sm:hidden border-t border-zinc-800 bg-zinc-950 px-4 py-3 flex flex-col gap-3">
-          {LINKS.map(({ href, label }) => {
+          {visibleLinks.map(({ href, label }) => {
             const active = pathname === href;
             return (
               <Link
