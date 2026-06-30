@@ -1,8 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Exclude Stacks packages from the server bundle — they use browser globals
-  // (window, document, crypto) at module-evaluation time and must never run on the server.
+  // Transpile Stacks ESM packages so webpack can bundle them for the client
+  transpilePackages: ['@stacks/connect', '@stacks/auth'],
+  // Keep Stacks packages out of the server bundle — they rely on browser globals
   serverExternalPackages: [
     '@stacks/connect',
     '@stacks/auth',
@@ -11,7 +12,6 @@ const nextConfig: NextConfig = {
     '@stacks/encryption',
     '@stacks/profile',
   ],
-  turbopack: {},
   webpack: (config) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,
