@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { AppConfig, UserSession, showConnect, disconnect as stacksDisconnect } from '@stacks/connect';
 
 interface WalletState {
@@ -19,22 +19,18 @@ const WalletContext = createContext<WalletState>({
 
 const STORAGE_KEY = 'glyph_wallet_address';
 
-let sharedSession: UserSession | null = null;
-
-function getSession(): UserSession {
-  if (sharedSession) return sharedSession;
-  const cfg = new AppConfig(['store_write', 'publish_data']);
-  sharedSession = new UserSession({ appConfig: cfg });
-  return sharedSession;
-}
+// Module-level singleton — only created once, only in the browser
+// (serverExternalPackages in next.config.ts ensures this file is never evaluated on the server)
+const session = new UserSession({
+  appConfig: new AppConfig(['store_write', 'publish_data']),
+});
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState<string | null>(null);
 
   useEffect(() => {
-    const sess = getSession();
-    if (sess.isUserSignedIn()) {
-      const data = sess.loadUserData();
+    if (session.isUserSignedIn()) {
+      const data = session.loadUserData();
       const addr = data.profile?.stxAddress?.mainnet as string | undefined;
       if (addr) { setAddress(addr); return; }
     }
@@ -43,12 +39,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const connect = useCallback(() => {
-    const sess = getSession();
     showConnect({
       appDetails: { name: 'Glyph', icon: '/favicon.ico' },
-      userSession: sess,
+      userSession: session,
       onFinish: () => {
-        const data = sess.loadUserData();
+        const data = session.loadUserData();
         const addr = data.profile?.stxAddress?.mainnet as string;
         setAddress(addr);
         localStorage.setItem(STORAGE_KEY, addr);
