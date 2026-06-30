@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { STACKS_MAINNET } from '@stacks/network';
 import { PostConditionMode, ClarityValue } from '@stacks/transactions';
 import { DEPLOYER, HIRO_API } from '@/lib/constants';
+import { getOpenContractCall } from '@/lib/stacks-connect';
 
 export type TxStatus = 'idle' | 'signing' | 'pending' | 'success' | 'error';
 
@@ -25,7 +26,7 @@ export function useContractCall() {
     setTxid(null);
     setError(null);
 
-    const { openContractCall } = await import('@stacks/connect');
+    const openContractCall = await getOpenContractCall();
 
     await openContractCall({
       contractAddress: DEPLOYER,

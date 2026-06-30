@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
+import { getShowConnect, getDisconnect, getSession } from '@/lib/stacks-connect';
 
 interface WalletState {
   address: string | null;
@@ -20,18 +21,15 @@ const STORAGE_KEY = 'glyph_wallet_address';
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState<string | null>(null);
-  const sessionRef = useRef<any>(null);
+  const sessionRef = useRef<Awaited<ReturnType<typeof getSession>> | null>(null);
 
-  const getSession = useCallback(async () => {
-    if (sessionRef.current) return sessionRef.current;
-    const { AppConfig, UserSession } = await import('@stacks/connect');
-    const cfg = new AppConfig(['store_write', 'publish_data']);
-    sessionRef.current = new UserSession({ appConfig: cfg });
+  const ensureSession = useCallback(async () => {
+    if (!sessionRef.current) sessionRef.current = await getSession();
     return sessionRef.current;
   }, []);
 
   useEffect(() => {
-    getSession().then((sess: any) => {
+    ensureSession().then((sess) => {
       if (sess.isUserSignedIn()) {
         const addr = sess.loadUserData()?.profile?.stxAddress?.mainnet as string | undefined;
         if (addr) { setAddress(addr); return; }
@@ -39,11 +37,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) setAddress(saved);
     });
-  }, [getSession]);
+  }, [ensureSession]);
 
   const connect = useCallback(async () => {
-    const { showConnect } = await import('@stacks/connect');
-    const sess = await getSession();
+    const [showConnect, sess] = await Promise.all([getShowConnect(), ensureSession()]);
     showConnect({
       appDetails: { name: 'Glyph', icon: '/favicon.ico' },
       userSession: sess,
@@ -54,10 +51,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       },
       onCancel: () => {},
     });
-  }, [getSession]);
+  }, [ensureSession]);
 
   const disconnect = useCallback(async () => {
-    const { disconnect: stacksDisconnect } = await import('@stacks/connect');
+    const stacksDisconnect = await getDisconnect();
     stacksDisconnect();
     setAddress(null);
     localStorage.removeItem(STORAGE_KEY);
