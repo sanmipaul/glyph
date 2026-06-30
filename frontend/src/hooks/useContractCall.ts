@@ -1,10 +1,9 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { STACKS_MAINNET } from '@stacks/network';
-import { PostConditionMode, ClarityValue, cvToHex } from '@stacks/transactions';
+import { ClarityValue, cvToHex } from '@stacks/transactions';
 import { DEPLOYER, HIRO_API } from '@/lib/constants';
-import { getOpenContractCall } from '@/lib/stacks-connect';
+import { getRequest } from '@/lib/stacks-connect';
 
 export type TxStatus = 'idle' | 'signing' | 'pending' | 'success' | 'error';
 
@@ -26,17 +25,22 @@ export function useContractCall() {
     setTxid(null);
     setError(null);
 
-    const openContractCall = await getOpenContractCall();
+    const request = await getRequest();
 
-    await openContractCall({
-      contractAddress: DEPLOYER,
-      contractName: opts.contractName,
-      functionName: opts.functionName,
-      functionArgs: opts.functionArgs.map(cvToHex),
-      network: { ...STACKS_MAINNET, client: { baseUrl: HIRO_API } },
-      postConditionMode: PostConditionMode.Allow,
-      postConditions: [],
-      onFinish: ({ txId }) => {
+    try {
+      const result = await request('stx_callContract', {
+        contract: `${DEPLOYER}.${opts.contractName}`,
+        functionName: opts.functionName,
+        // cvToHex produces 0x-prefixed hex — the format Xverse's transaction
+        // builder expects when it deserializes args for fee estimation.
+        functionArgs: opts.functionArgs.map(cvToHex),
+        network: 'mainnet',
+        postConditionMode: 'allow',
+        postConditions: [],
+      });
+
+      const txId: string = (result as any).txid ?? (result as any).txId;
+      if (txId) {
         setTxid(txId);
         setStatus('pending');
         poll(txId, opts.onSuccess, (reason) => {
@@ -44,11 +48,18 @@ export function useContractCall() {
           setError(reason);
           opts.onError?.(reason);
         });
-      },
-      onCancel: () => {
+      }
+    } catch (e: any) {
+      // -31001 = user cancelled; treat as idle so UI resets cleanly
+      if (e?.code === -31001 || /cancel/i.test(e?.message ?? '')) {
         setStatus('idle');
-      },
-    });
+      } else {
+        const msg: string = e?.message ?? 'Transaction failed';
+        setStatus('error');
+        setError(msg);
+        opts.onError?.(msg);
+      }
+    }
   }, []);
 
   const reset = useCallback(() => {
@@ -73,7 +84,7 @@ function poll(
 ) {
   const timer = setInterval(async () => {
     try {
-      const r = await fetch(`${HIRO_API}/extended/v1/tx/0x${txid}`);
+      const r = await fetch(`${HIRO_API}/extended/v1/tx/${txid}`);
       const d = await r.json();
       if (d.tx_status === 'success') {
         clearInterval(timer);

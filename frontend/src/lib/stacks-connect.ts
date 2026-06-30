@@ -42,6 +42,17 @@ export async function getOpenContractCall() {
   }
 }
 
+export async function getRequest() {
+  try {
+    const mod = await load();
+    return mod.request;
+  } catch {
+    const mod = await import('@stacks/connect') as any;
+    const m = mod.default ?? mod;
+    return m.request as ConnectMod['request'];
+  }
+}
+
 export async function getDisconnect() {
   try {
     const mod = await load();
