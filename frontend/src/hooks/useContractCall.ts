@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { openContractCall } from '@stacks/connect';
 import { STACKS_MAINNET } from '@stacks/network';
 import { PostConditionMode, ClarityValue } from '@stacks/transactions';
 import { DEPLOYER, HIRO_API } from '@/lib/constants';
@@ -25,6 +24,8 @@ export function useContractCall() {
     setStatus('signing');
     setTxid(null);
     setError(null);
+
+    const { openContractCall } = await import('@stacks/connect');
 
     await openContractCall({
       contractAddress: DEPLOYER,

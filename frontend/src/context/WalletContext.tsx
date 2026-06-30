@@ -1,7 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
-import { AppConfig, UserSession, showConnect, disconnect as stacksDisconnect } from '@stacks/connect';
+import { createContext, useContext, useEffect, useState, useCallback, useRef, ReactNode } from 'react';
 
 interface WalletState {
   address: string | null;
@@ -19,40 +18,46 @@ const WalletContext = createContext<WalletState>({
 
 const STORAGE_KEY = 'glyph_wallet_address';
 
-// Module-level singleton — only created once, only in the browser
-// (serverExternalPackages in next.config.ts ensures this file is never evaluated on the server)
-const session = new UserSession({
-  appConfig: new AppConfig(['store_write', 'publish_data']),
-});
-
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState<string | null>(null);
+  const sessionRef = useRef<any>(null);
 
-  useEffect(() => {
-    if (session.isUserSignedIn()) {
-      const data = session.loadUserData();
-      const addr = data.profile?.stxAddress?.mainnet as string | undefined;
-      if (addr) { setAddress(addr); return; }
-    }
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) setAddress(saved);
+  const getSession = useCallback(async () => {
+    if (sessionRef.current) return sessionRef.current;
+    const { AppConfig, UserSession } = await import('@stacks/connect');
+    const cfg = new AppConfig(['store_write', 'publish_data']);
+    sessionRef.current = new UserSession({ appConfig: cfg });
+    return sessionRef.current;
   }, []);
 
-  const connect = useCallback(() => {
+  useEffect(() => {
+    getSession().then((sess: any) => {
+      if (sess.isUserSignedIn()) {
+        const addr = sess.loadUserData()?.profile?.stxAddress?.mainnet as string | undefined;
+        if (addr) { setAddress(addr); return; }
+      }
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) setAddress(saved);
+    });
+  }, [getSession]);
+
+  const connect = useCallback(async () => {
+    const { showConnect } = await import('@stacks/connect');
+    const sess = await getSession();
     showConnect({
       appDetails: { name: 'Glyph', icon: '/favicon.ico' },
-      userSession: session,
+      userSession: sess,
       onFinish: () => {
-        const data = session.loadUserData();
-        const addr = data.profile?.stxAddress?.mainnet as string;
+        const addr = sess.loadUserData()?.profile?.stxAddress?.mainnet as string;
         setAddress(addr);
         localStorage.setItem(STORAGE_KEY, addr);
       },
       onCancel: () => {},
     });
-  }, []);
+  }, [getSession]);
 
-  const disconnect = useCallback(() => {
+  const disconnect = useCallback(async () => {
+    const { disconnect: stacksDisconnect } = await import('@stacks/connect');
     stacksDisconnect();
     setAddress(null);
     localStorage.removeItem(STORAGE_KEY);
