@@ -11,8 +11,6 @@ const nextConfig: NextConfig = {
     '@stacks/encryption',
     '@stacks/profile',
   ],
-  // Transpile Stacks ESM packages for the client webpack bundle
-  transpilePackages: ['@stacks/connect', '@stacks/auth'],
   webpack: (config) => {
     // Stub out Node built-ins that @stacks/* packages reference but don't need in the browser
     config.resolve.fallback = {
