@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { STACKS_MAINNET } from '@stacks/network';
-import { PostConditionMode, ClarityValue } from '@stacks/transactions';
+import { PostConditionMode, ClarityValue, cvToHex } from '@stacks/transactions';
 import { DEPLOYER, HIRO_API } from '@/lib/constants';
 import { getOpenContractCall } from '@/lib/stacks-connect';
 
@@ -32,7 +32,7 @@ export function useContractCall() {
       contractAddress: DEPLOYER,
       contractName: opts.contractName,
       functionName: opts.functionName,
-      functionArgs: opts.functionArgs,
+      functionArgs: opts.functionArgs.map(cvToHex),
       network: { ...STACKS_MAINNET, client: { baseUrl: HIRO_API } },
       postConditionMode: PostConditionMode.Allow,
       postConditions: [],
