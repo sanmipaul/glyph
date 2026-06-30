@@ -1,9 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Transpile Stacks ESM packages so webpack can bundle them for the client
-  transpilePackages: ['@stacks/connect', '@stacks/auth'],
-  // Keep Stacks packages out of the server bundle — they rely on browser globals
+  // @stacks/* packages use browser globals at module-evaluation time;
+  // exclude them from the server bundle so SSR prerendering doesn't crash.
   serverExternalPackages: [
     '@stacks/connect',
     '@stacks/auth',
@@ -12,7 +11,10 @@ const nextConfig: NextConfig = {
     '@stacks/encryption',
     '@stacks/profile',
   ],
+  // Transpile Stacks ESM packages for the client webpack bundle
+  transpilePackages: ['@stacks/connect', '@stacks/auth'],
   webpack: (config) => {
+    // Stub out Node built-ins that @stacks/* packages reference but don't need in the browser
     config.resolve.fallback = {
       ...config.resolve.fallback,
       fs: false,
