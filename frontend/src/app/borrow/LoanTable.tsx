@@ -7,7 +7,7 @@ import { useToast } from '@/components/ui/Toast';
 import { TxStatusBanner } from '@/components/ui/TxStatusBanner';
 import { Spinner } from '@/components/ui/Spinner';
 import { RepayForm } from './RepayForm';
-import { uintCV } from '@stacks/transactions';
+import { uintCV, standardPrincipalCV } from '@stacks/transactions';
 import { CONTRACT_NAMES } from '@/lib/constants';
 import type { LoanPosition, Appraisal } from '@/types';
 
@@ -21,19 +21,20 @@ interface LoanEntry {
 
 interface Props {
   loans: LoanEntry[];
+  userAddress: string;
   onAction: () => void;
 }
 
-export function LoanTable({ loans, onAction }: Props) {
+export function LoanTable({ loans, userAddress, onAction }: Props) {
   const [repaying, setRepaying] = useState<number | null>(null);
   const { call, status, txid, error, reset } = useContractCall();
   const { toast } = useToast();
 
-  const liquidate = async (tokenId: number, user: string) => {
+  const liquidate = async (tokenId: number) => {
     await call({
       contractName: CONTRACT_NAMES.ordinalCollateral,
-      functionName: 'liquidate',
-      functionArgs: [uintCV(tokenId)],
+      functionName: 'liquidate-position',
+      functionArgs: [standardPrincipalCV(userAddress), uintCV(tokenId)],
       onSuccess: () => { toast('Liquidated', 'success'); onAction(); },
       onError: (r) => toast(r, 'error'),
     });
@@ -96,7 +97,7 @@ export function LoanTable({ loans, onAction }: Props) {
               {liquidatable && (
                 <button
                   disabled={busy}
-                  onClick={() => liquidate(tokenId, '')}
+                  onClick={() => liquidate(tokenId)}
                   className="flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-500 disabled:opacity-50 transition-colors"
                 >
                   {busy && <Spinner size={12} />}

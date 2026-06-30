@@ -80,7 +80,7 @@ export default function BorrowPage() {
             }
           />
         ) : (
-          <LoanTable loans={loans} onAction={reload} />
+          <LoanTable loans={loans} userAddress={address ?? ''} onAction={reload} />
         )}
 
         <OpenLoanForm

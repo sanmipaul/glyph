@@ -39,7 +39,7 @@ export function ApprovalPanel({ withdrawalId, onAction }: Props) {
   const cancel = async () => {
     await call({
       contractName: CONTRACT_NAMES.bridgeVault,
-      functionName: 'cancel-withdrawal',
+      functionName: 'cancel-expired-withdrawal',
       functionArgs: [uintCV(withdrawalId)],
       onSuccess: () => { toast('Withdrawal cancelled', 'success'); onAction(); },
       onError: (r) => toast(r, 'error'),
