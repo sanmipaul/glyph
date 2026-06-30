@@ -9,6 +9,8 @@ import { useToast } from '@/components/ui/Toast';
 import { uintCV } from '@stacks/transactions';
 import { CONTRACT_NAMES } from '@/lib/constants';
 
+const STX_ASSET = BigInt(1); // asset ID 1 = STX
+
 interface Props {
   open: boolean;
   availableTokenIds: number[];
@@ -25,10 +27,11 @@ export function OpenLoanForm({ open, availableTokenIds, onClose, onSuccess }: Pr
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const microAmount = Math.floor(Number(amount) * 1_000_000);
+    // borrow(token-id uint, loan-amount uint, loan-asset uint)
     await call({
       contractName: CONTRACT_NAMES.ordinalCollateral,
-      functionName: 'open-position',
-      functionArgs: [uintCV(Number(tokenId)), uintCV(microAmount)],
+      functionName: 'borrow',
+      functionArgs: [uintCV(Number(tokenId)), uintCV(microAmount), uintCV(STX_ASSET)],
       onSuccess: () => { toast('Loan opened successfully', 'success'); onSuccess(); },
       onError: (r) => toast(r, 'error'),
     });
@@ -74,7 +77,7 @@ export function OpenLoanForm({ open, availableTokenIds, onClose, onSuccess }: Pr
           />
         </div>
         <p className="text-xs text-zinc-500">
-          Loans accrue 5% APR. Make sure the amount is within your collection's LTV limit.
+          Loans accrue 5% APR. Amount must be within your collection's LTV limit.
           Approve the collateral contract before opening.
         </p>
         <button

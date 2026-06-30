@@ -6,7 +6,7 @@ import { TxStatusBanner } from '@/components/ui/TxStatusBanner';
 import { Spinner } from '@/components/ui/Spinner';
 import { useContractCall } from '@/hooks/useContractCall';
 import { useToast } from '@/components/ui/Toast';
-import { stringAsciiCV } from '@stacks/transactions';
+import { stringAsciiCV, uintCV } from '@stacks/transactions';
 import { CONTRACT_NAMES } from '@/lib/constants';
 
 interface Props {
@@ -19,7 +19,7 @@ export function WrapForm({ open, onClose, onSuccess }: Props) {
   const [inscriptionId, setInscriptionId] = useState('');
   const [collection, setCollection] = useState('');
   const [contentType, setContentType] = useState('');
-  const [btcAddress, setBtcAddress] = useState('');
+  const [satNumber, setSatNumber] = useState('');
   const { call, status, txid, error, reset } = useContractCall();
   const { toast } = useToast();
 
@@ -32,9 +32,9 @@ export function WrapForm({ open, onClose, onSuccess }: Props) {
         stringAsciiCV(inscriptionId.trim()),
         stringAsciiCV(collection.trim()),
         stringAsciiCV(contentType.trim()),
-        stringAsciiCV(btcAddress.trim()),
+        uintCV(BigInt(satNumber.trim())),
       ],
-      onSuccess: (tx) => {
+      onSuccess: () => {
         toast('Ordinal registered successfully', 'success');
         onSuccess();
       },
@@ -53,13 +53,24 @@ export function WrapForm({ open, onClose, onSuccess }: Props) {
       </div>
       <form onSubmit={submit} className="flex flex-col gap-4">
         <Field label="Inscription ID" value={inscriptionId} onChange={setInscriptionId}
-          placeholder="abc123...i0" required />
+          placeholder="abc123def456...i0" required />
         <Field label="Collection" value={collection} onChange={setCollection}
-          placeholder="my-collection" required />
+          placeholder="bitcoin-puppets" required />
         <Field label="Content Type" value={contentType} onChange={setContentType}
           placeholder="image/png" required />
-        <Field label="Bitcoin Address" value={btcAddress} onChange={setBtcAddress}
-          placeholder="bc1q..." required />
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium text-zinc-400">Sat Number</label>
+          <input
+            type="number"
+            min="0"
+            value={satNumber}
+            onChange={(e) => setSatNumber(e.target.value)}
+            placeholder="1234567890"
+            required
+            className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:border-orange-500 focus:outline-none"
+          />
+          <p className="text-xs text-zinc-600">The ordinal number of the satoshi carrying this inscription.</p>
+        </div>
         <button
           type="submit"
           disabled={busy}
