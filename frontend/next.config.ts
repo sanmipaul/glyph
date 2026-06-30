@@ -12,6 +12,8 @@ const nextConfig: NextConfig = {
     '@stacks/profile',
   ],
   webpack: (config) => {
+    // Prefer ESM build of packages that ship both CJS and ESM
+    config.resolve.mainFields = ['browser', 'module', 'main'];
     // Stub out Node built-ins that @stacks/* packages reference but don't need in the browser
     config.resolve.fallback = {
       ...config.resolve.fallback,
