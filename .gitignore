@@ -4,6 +4,7 @@
 *.swo
 node_modules/
 .DS_Store
+tmp/
 
 /deploy-single.mjs
 /interact.mjs

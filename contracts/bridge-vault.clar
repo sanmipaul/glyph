@@ -53,10 +53,10 @@
 (define-public (initiate-withdrawal (token-id uint) (btc-address (string-ascii 62)))
   (begin
     (asserts! (> (len btc-address) u25) ERR-INVALID-BTC-ADDRESS)
-    (let ((inscription-id (unwrap! (contract-call? 'SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR.ordinal-registry get-inscription-id token-id) ERR-NOT-FOUND))
+    (let ((inscription-id (unwrap! (contract-call? .ordinal-registry get-inscription-id token-id) ERR-NOT-FOUND))
           (withdrawal-id (var-get withdrawal-nonce)))
       ;; Transfer NFT to vault for holding during bridge process
-      (try! (contract-call? 'SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR.wrapped-ordinal-nft transfer token-id tx-sender (as-contract tx-sender)))
+      (try! (contract-call? .wrapped-ordinal-nft transfer token-id tx-sender (as-contract tx-sender)))
       (map-set pending-withdrawals
         { withdrawal-id: withdrawal-id }
         { user: tx-sender,
@@ -98,7 +98,7 @@
     (asserts! (>= (get approvals w) (var-get required-signatures)) ERR-INSUFFICIENT-APPROVALS)
     (asserts! (< (- stacks-block-height (get created-at w)) WITHDRAWAL-EXPIRY) ERR-EXPIRED)
     ;; Burn the wrapped NFT - signals off-chain bridge to release the inscription on Bitcoin
-    (try! (as-contract (contract-call? 'SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR.wrapped-ordinal-nft burn (get token-id w))))
+    (try! (as-contract (contract-call? .wrapped-ordinal-nft burn (get token-id w))))
     (map-set pending-withdrawals
       { withdrawal-id: withdrawal-id }
       (merge w { executed: true }))
@@ -116,7 +116,7 @@
     (asserts! (not (get cancelled w)) ERR-ALREADY-EXECUTED)
     (asserts! (>= (- stacks-block-height (get created-at w)) WITHDRAWAL-EXPIRY) ERR-NOT-EXPIRED)
     ;; Return NFT to user
-    (try! (as-contract (contract-call? 'SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR.wrapped-ordinal-nft transfer
+    (try! (as-contract (contract-call? .wrapped-ordinal-nft transfer
             (get token-id w) (as-contract tx-sender) (get user w))))
     (map-set pending-withdrawals
       { withdrawal-id: withdrawal-id }

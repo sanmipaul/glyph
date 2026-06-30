@@ -100,7 +100,7 @@
         { total: (get total coll-stats), verified: (+ (get verified coll-stats) u1) })
       (var-set total-verified (+ (var-get total-verified) u1))
       ;; Mint the wrapped NFT
-      (try! (contract-call? 'SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR.wrapped-ordinal-nft mint
+      (try! (contract-call? .wrapped-ordinal-nft mint
               (get owner data)
               (get token-id data)
               (concat "https://glyph.btc/ordinal/" inscription-id)))

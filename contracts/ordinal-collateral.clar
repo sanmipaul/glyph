@@ -83,14 +83,14 @@
   (begin
     (asserts! (is-none (map-get? loan-positions { user: tx-sender, token-id: token-id })) ERR-POSITION-EXISTS)
     (let ((appraisal (unwrap! (map-get? appraisals token-id) ERR-NO-APPRAISAL))
-          (ordinal-data (unwrap! (contract-call? 'SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR.ordinal-registry get-inscription-id token-id) ERR-NOT-FOUND)))
-      (let ((inscription (unwrap! (contract-call? 'SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR.ordinal-registry get-ordinal ordinal-data) ERR-NOT-FOUND))
+          (ordinal-data (unwrap! (contract-call? .ordinal-registry get-inscription-id token-id) ERR-NOT-FOUND)))
+      (let ((inscription (unwrap! (contract-call? .ordinal-registry get-ordinal ordinal-data) ERR-NOT-FOUND))
              (max-ltv (unwrap! (map-get? collection-ltv (get collection inscription)) ERR-COLLECTION-NOT-WHITELISTED))
              (max-loan (/ (* (get value appraisal) max-ltv) BASIS-POINTS))
              (ltv (/ (* loan-amount BASIS-POINTS) (get value appraisal))))
         (asserts! (<= loan-amount max-loan) ERR-LTV-EXCEEDED)
         ;; Transfer NFT from user to this contract as collateral
-        (try! (contract-call? 'SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR.wrapped-ordinal-nft transfer token-id tx-sender (as-contract tx-sender)))
+        (try! (contract-call? .wrapped-ordinal-nft transfer token-id tx-sender (as-contract tx-sender)))
         ;; Release loan amount in STX
         (if (is-eq loan-asset STX-ASSET)
           (try! (as-contract (stx-transfer? loan-amount tx-sender tx-sender)))
@@ -114,7 +114,7 @@
         (try! (stx-transfer? total-owed tx-sender (as-contract tx-sender)))
         true)
       ;; Return NFT
-      (try! (as-contract (contract-call? 'SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR.wrapped-ordinal-nft transfer token-id (as-contract tx-sender) tx-sender)))
+      (try! (as-contract (contract-call? .wrapped-ordinal-nft transfer token-id (as-contract tx-sender) tx-sender)))
       (map-delete loan-positions { user: tx-sender, token-id: token-id })
       (print { event: "repay", user: tx-sender, token-id: token-id, total-paid: total-owed })
       (ok total-owed))))
@@ -132,7 +132,7 @@
         (try! (stx-transfer? total-debt tx-sender (as-contract tx-sender)))
         true)
       ;; Transfer NFT to liquidator
-      (try! (as-contract (contract-call? 'SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR.wrapped-ordinal-nft transfer token-id (as-contract tx-sender) tx-sender)))
+      (try! (as-contract (contract-call? .wrapped-ordinal-nft transfer token-id (as-contract tx-sender) tx-sender)))
       (map-delete loan-positions { user: user, token-id: token-id })
       (print { event: "liquidation", user: user, token-id: token-id, liquidator: tx-sender, debt: total-debt })
       (ok true))))

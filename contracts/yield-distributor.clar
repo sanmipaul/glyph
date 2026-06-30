@@ -51,12 +51,12 @@
 (define-public (stake (token-id uint))
   (begin
     (asserts! (is-none (map-get? staked-tokens { user: tx-sender, token-id: token-id })) ERR-ALREADY-STAKED)
-    (let ((inscription-id (unwrap! (contract-call? 'SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR.ordinal-registry get-inscription-id token-id) ERR-NOT-FOUND))
-          (ordinal-data (unwrap! (contract-call? 'SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR.ordinal-registry get-ordinal
-                          (unwrap-panic (contract-call? 'SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR.ordinal-registry get-inscription-id token-id))) ERR-NOT-FOUND)))
+    (let ((inscription-id (unwrap! (contract-call? .ordinal-registry get-inscription-id token-id) ERR-NOT-FOUND))
+          (ordinal-data (unwrap! (contract-call? .ordinal-registry get-ordinal
+                          (unwrap-panic (contract-call? .ordinal-registry get-inscription-id token-id))) ERR-NOT-FOUND)))
       (let ((collection (get collection ordinal-data)))
         (asserts! (is-some (map-get? collection-yield-config collection)) ERR-COLLECTION-NOT-CONFIGURED)
-        (try! (contract-call? 'SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR.wrapped-ordinal-nft transfer token-id tx-sender (as-contract tx-sender)))
+        (try! (contract-call? .wrapped-ordinal-nft transfer token-id tx-sender (as-contract tx-sender)))
         (map-set staked-tokens
           { user: tx-sender, token-id: token-id }
           { staked-at: stacks-block-height, collection: collection, claimed-up-to-block: stacks-block-height })
@@ -100,7 +100,7 @@
                 true))
             true))
         true)
-      (try! (as-contract (contract-call? 'SP3K07C30N3YCY5JHQAG751KVCF23FY05FD4PP1MR.wrapped-ordinal-nft transfer token-id (as-contract tx-sender) tx-sender)))
+      (try! (as-contract (contract-call? .wrapped-ordinal-nft transfer token-id (as-contract tx-sender) tx-sender)))
       (match (map-get? collection-yield-config (get collection staked-info))
         config
         (map-set collection-yield-config (get collection staked-info)

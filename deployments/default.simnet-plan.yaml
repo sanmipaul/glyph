@@ -1,0 +1,67 @@
+---
+id: 0
+name: "Simulated deployment, used as a default for `clarinet console`, `clarinet test` and `clarinet check`"
+network: simnet
+genesis:
+  wallets:
+    - name: deployer
+      address: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+      balance: "100000000000000"
+      sbtc-balance: "1000000000"
+    - name: wallet_1
+      address: ST1M7QG9H0R54JVTTNN4P5R8PZ92GP8B4J0K6YS2A
+      balance: "100000000000000"
+      sbtc-balance: "1000000000"
+    - name: wallet_2
+      address: ST19VGAG9XEB9AXSZ1TAHS54PV6AYDY2N1B28T3VK
+      balance: "100000000000000"
+      sbtc-balance: "1000000000"
+    - name: wallet_3
+      address: STEW4ZNT093ZHK4NEQKX8QJGM2Y7WWJ2FQQS5C19
+      balance: "100000000000000"
+      sbtc-balance: "1000000000"
+  contracts:
+    - genesis
+    - lockup
+    - bns
+    - cost-voting
+    - costs
+    - pox
+    - costs-2
+    - pox-2
+    - costs-3
+    - pox-3
+    - pox-4
+    - signers
+    - signers-voting
+    - costs-4
+plan:
+  batches:
+    - id: 0
+      transactions:
+        - emulated-contract-publish:
+            contract-name: wrapped-ordinal-nft
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/wrapped-ordinal-nft.clar
+            clarity-version: 3
+        - emulated-contract-publish:
+            contract-name: ordinal-registry
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/ordinal-registry.clar
+            clarity-version: 3
+        - emulated-contract-publish:
+            contract-name: bridge-vault
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/bridge-vault.clar
+            clarity-version: 3
+        - emulated-contract-publish:
+            contract-name: ordinal-collateral
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/ordinal-collateral.clar
+            clarity-version: 3
+        - emulated-contract-publish:
+            contract-name: yield-distributor
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/yield-distributor.clar
+            clarity-version: 3
+      epoch: "3.0"
